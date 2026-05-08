@@ -1,0 +1,103 @@
+<!-- pages/index/index.wxml — 任务列表主页 -->
+<view class="page-container">
+
+  <!-- ===== 顶部蓝色标题区 ===== -->
+  <view class="header">
+    <view class="header-title">最近三天 · 待办任务</view>
+    <view class="header-date-range">{{dateRangeLabel}}</view>
+  </view>
+
+  <!-- ===== 任务列表 ===== -->
+  <scroll-view
+    class="task-list"
+    scroll-y
+    enable-flex
+    refresher-enabled
+    refresher-triggered="{{isRefreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{tasks.length === 0 && !loading}}">
+      <view class="empty-icon">📋</view>
+      <view class="empty-text">暂无待办任务</view>
+      <view class="empty-sub">点击下方按钮添加新任务</view>
+    </view>
+
+    <!-- 加载中 -->
+    <view class="loading-state" wx:if="{{loading}}">
+      <view class="loading-spinner"></view>
+      <view class="loading-text">加载中...</view>
+    </view>
+
+    <!-- 任务卡片列表 -->
+    <view
+      class="task-item"
+      wx:for="{{tasks}}"
+      wx:key="_id"
+      data-id="{{item._id}}"
+      bindtap="onTaskTap"
+    >
+      <!-- 优先级色条 -->
+      <view class="priority-bar priority-{{item.priority}}"></view>
+
+      <!-- 任务主体 -->
+      <view class="task-body">
+        <view class="task-content">{{item.content}}</view>
+        <view class="task-meta">
+          <text class="source-tag source-{{item.source}}">
+            {{item.source === 'voice' ? '🎤语音' : (item.source === 'clipboard' ? '📋剪贴板' : '✍手动')}}
+          </text>
+          <text class="due-date">{{item.dueLabel}}</text>
+          <text class="remind-time" wx:if="{{item.remindLabel}}">{{item.remindLabel}}</text>
+        </view>
+      </view>
+
+      <!-- 完成按钮（右侧） -->
+      <view
+        class="complete-btn {{item._id === completingId ? 'completing' : ''}}"
+        data-id="{{item._id}}"
+        catchtap="onCompleteTap"
+      >
+        <text wx:if="{{item._id === completingId}}">✓</text>
+        <text wx:else>○</text>
+      </view>
+    </view>
+
+    <!-- 列表底部留白，给固定底部栏让位 -->
+    <view class="list-bottom-spacer"></view>
+  </scroll-view>
+
+  <!-- ===== 底部固定操作栏 ===== -->
+  <view class="bottom-bar">
+    <!-- PC 端置顶窗口按钮 -->
+    <view
+      class="bottom-btn pin-btn"
+      wx:if="{{isPC}}"
+      bindtap="onPinWindow"
+    >
+      <text class="btn-icon">📌</text>
+      <text class="btn-label">置顶窗口</text>
+    </view>
+
+    <view class="bottom-btn" data-mode="voice" bindtap="onAddTap">
+      <text class="btn-icon">🎤</text>
+      <text class="btn-label">语音添加</text>
+    </view>
+    <view class="bottom-btn" data-mode="clipboard" bindtap="onAddTap">
+      <text class="btn-icon">📋</text>
+      <text class="btn-label">剪贴板识别</text>
+    </view>
+    <view class="bottom-btn primary-btn" data-mode="manual" bindtap="onAddTap">
+      <text class="btn-icon">＋</text>
+      <text class="btn-label">手动添加</text>
+    </view>
+    <view class="bottom-btn" bindtap="onSummaryTap">
+      <text class="btn-icon">📊</text>
+      <text class="btn-label">工作总结</text>
+    </view>
+  </view>
+
+  <!-- 悬浮快捷按钮 -->
+  <float-button visible="{{true}}" />
+
+</view>

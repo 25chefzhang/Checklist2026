@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "工作任务清单",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "float-button": "/components/float-button/float-button",
+    "task-card": "/components/task-card/task-card"
+  }
+}

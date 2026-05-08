@@ -1,0 +1,107 @@
+.dialog-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 遮罩层 */
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: maskFadeIn 0.25s ease;
+}
+
+/* 弹窗卡片 */
+.dialog-card {
+  position: relative;
+  width: 580rpx;
+  max-width: 600rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 48rpx 40rpx 32rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.15);
+  animation: dialogSlideIn 0.3s ease;
+  z-index: 1;
+}
+
+/* 标题 */
+.dialog-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+/* 内容 */
+.dialog-content {
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 40rpx;
+  padding: 0 16rpx;
+}
+
+/* 按钮区 */
+.dialog-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.dialog-btn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.dialog-btn:active {
+  opacity: 0.7;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #1a73e8;
+  color: #ffffff;
+}
+
+.confirm-btn.full-width {
+  /* 无取消按钮时占满 */
+}
+
+/* 动画 */
+@keyframes maskFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

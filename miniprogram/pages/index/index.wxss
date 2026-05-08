@@ -1,0 +1,289 @@
+/* pages/index/index.wxss — 任务列表主页样式 */
+
+/* ===== 页面容器 ===== */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f6fa;
+}
+
+/* ===== 顶部蓝色标题区 ===== */
+.header {
+  background: linear-gradient(135deg, #1a73e8 0%, #4a90d9 100%);
+  padding: 40rpx 32rpx 36rpx;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  line-height: 1.2;
+}
+
+.header-date-range {
+  font-size: 26rpx;
+  margin-top: 12rpx;
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+/* ===== 任务列表 ===== */
+.task-list {
+  flex: 1;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.empty-icon {
+  font-size: 96rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #888;
+  font-weight: 500;
+}
+
+.empty-sub {
+  font-size: 26rpx;
+  color: #aaa;
+  margin-top: 12rpx;
+}
+
+/* ===== 加载状态 ===== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.loading-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top-color: #1a73e8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 16rpx;
+}
+
+/* ===== 任务卡片 ===== */
+.task-item {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.task-item:active {
+  transform: scale(0.985);
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 优先级色条 */
+.priority-bar {
+  width: 8rpx;
+  flex-shrink: 0;
+  border-radius: 4rpx 0 0 4rpx;
+}
+
+.priority-high {
+  background-color: #e74c3c;
+}
+
+.priority-medium {
+  background-color: #f39c12;
+}
+
+.priority-low {
+  background-color: #27ae60;
+}
+
+/* 任务主体 */
+.task-body {
+  flex: 1;
+  padding: 20rpx 16rpx 20rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.task-content {
+  font-size: 30rpx;
+  color: #2c3e50;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 10rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+/* 来源标签 */
+.source-tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  background: #f0f0f0;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.source-voice {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.source-clipboard {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.source-manual {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* 截止日期 */
+.due-date {
+  font-size: 24rpx;
+  color: #888;
+  flex-shrink: 0;
+}
+
+/* 提醒时间 */
+.remind-time {
+  font-size: 22rpx;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+/* 完成按钮 */
+.complete-btn {
+  width: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 40rpx;
+  color: #ccc;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 0 16rpx 16rpx 0;
+  cursor: pointer;
+}
+
+.complete-btn.completing {
+  color: #fff;
+  background: #27ae60;
+}
+
+/* ===== 列表底部留白 ===== */
+.list-bottom-spacer {
+  height: 140rpx;
+}
+
+/* ===== 底部固定操作栏 ===== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #fff;
+  padding: 16rpx 12rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom, 0rpx));
+  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.bottom-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+  transition: background 0.15s;
+  min-width: 120rpx;
+}
+
+.bottom-btn:active {
+  background: #f5f5f5;
+}
+
+.primary-btn {
+  background: #1a73e8;
+  border-radius: 16rpx;
+}
+
+.primary-btn:active {
+  background: #1557b0;
+}
+
+.primary-btn .btn-label {
+  color: #fff;
+  font-weight: 600;
+}
+
+.primary-btn .btn-icon {
+  color: #fff;
+}
+
+.pin-btn {
+  background: #fef3e2;
+}
+
+.pin-btn .btn-label {
+  color: #e67e22;
+}
+
+.btn-icon {
+  font-size: 36rpx;
+  line-height: 1;
+  color: #333;
+}
+
+.btn-label {
+  font-size: 20rpx;
+  color: #666;
+  margin-top: 4rpx;
+  font-weight: 500;
+}

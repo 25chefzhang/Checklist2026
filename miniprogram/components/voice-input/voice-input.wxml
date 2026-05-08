@@ -1,0 +1,34 @@
+<view class="voice-input-container">
+  <!-- 状态文字 -->
+  <view class="status-text">
+    <text wx:if="{{status === 'idle'}}">按住说话</text>
+    <text wx:elif="{{status === 'recording'}}">正在录音 {{duration}}s</text>
+    <text wx:elif="{{status === 'recognizing'}}">识别中...</text>
+    <text wx:elif="{{status === 'done'}}">✓ 识别完成</text>
+  </view>
+
+  <!-- 录音按钮 -->
+  <view
+    class="record-btn {{status === 'recording' ? 'recording' : ''}} {{status === 'recognizing' ? 'recognizing' : ''}}"
+    bind:touchstart="onTouchStart"
+    bind:touchend="onTouchEnd"
+    bind:touchcancel="onTouchCancel"
+  >
+    <!-- 麦克风图标 -->
+    <view class="mic-icon" wx:if="{{status === 'idle'}}">🎤</view>
+    <!-- 录制中脉冲环 -->
+    <view class="pulse-ring" wx:if="{{status === 'recording'}}"></view>
+    <view class="recording-icon" wx:if="{{status === 'recording'}}">🔴</view>
+    <!-- 识别中旋转 -->
+    <view class="recognizing-spinner" wx:if="{{status === 'recognizing'}}"></view>
+    <view class="done-icon" wx:if="{{status === 'done'}}">✓</view>
+  </view>
+
+  <!-- 提示文字 -->
+  <view class="hint-text" wx:if="{{status === 'idle'}}">
+    最长可录制 {{maxDuration}} 秒
+  </view>
+  <view class="hint-text cancel-hint" wx:if="{{status === 'recording'}}">
+    松开完成录音，上滑取消
+  </view>
+</view>

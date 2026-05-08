@@ -1,0 +1,117 @@
+.voice-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0;
+}
+
+/* 状态文字 */
+.status-text {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 40rpx;
+  min-height: 40rpx;
+  text-align: center;
+}
+
+/* 录音按钮 */
+.record-btn {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 6rpx 30rpx rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.record-btn:active {
+  transform: scale(0.95);
+}
+
+/* 录制中状态 */
+.record-btn.recording {
+  background: #ff4444;
+  box-shadow: 0 6rpx 30rpx rgba(255, 68, 68, 0.4);
+  transform: scale(1.05);
+}
+
+/* 识别中状态 */
+.record-btn.recognizing {
+  background: #f5f5f5;
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 图标 */
+.mic-icon {
+  font-size: 80rpx;
+}
+
+.recording-icon {
+  font-size: 48rpx;
+  animation: pulse 1s ease-in-out infinite;
+  z-index: 1;
+}
+
+.done-icon {
+  font-size: 64rpx;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* 脉冲环 */
+.pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255, 68, 68, 0.6);
+  animation: pulseRing 1.5s ease-out infinite;
+}
+
+/* 识别中旋转动画 */
+.recognizing-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  border: 4rpx solid #ddd;
+  border-top-color: #1a73e8;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 提示文字 */
+.hint-text {
+  margin-top: 36rpx;
+  font-size: 24rpx;
+  color: #aaa;
+}
+
+.hint-text.cancel-hint {
+  color: #ff9800;
+}
+
+/* 动画 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

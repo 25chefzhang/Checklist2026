@@ -1,0 +1,177 @@
+<!-- pages/add/add.wxml — 添加任务页 -->
+<view class="page">
+
+  <!-- ===== 模式切换 Tab ===== -->
+  <view class="mode-tabs">
+    <view
+      class="tab-item {{mode === 'voice' ? 'active' : ''}}"
+      data-mode="voice"
+      bindtap="switchMode"
+    >🎤 语音</view>
+    <view
+      class="tab-item {{mode === 'clipboard' ? 'active' : ''}}"
+      data-mode="clipboard"
+      bindtap="switchMode"
+    >📋 剪贴板</view>
+    <view
+      class="tab-item {{mode === 'manual' ? 'active' : ''}}"
+      data-mode="manual"
+      bindtap="switchMode"
+    >✍ 手动</view>
+  </view>
+
+  <!-- ===== 语音模式 ===== -->
+  <view class="mode-panel" wx:if="{{mode === 'voice'}}">
+    <view class="voice-hint" wx:if="{{!recognizedText && !isRecording}}">
+      按住下方按钮开始录音，松开后自动识别
+    </view>
+
+    <!-- 录音按钮（圆形） -->
+    <view
+      class="voice-btn {{isRecording ? 'recording' : ''}}"
+      bindtouchstart="onVoiceTouchStart"
+      bindtouchend="onVoiceTouchEnd"
+      bindtouchcancel="onVoiceTouchEnd"
+    >
+      <text class="voice-btn-icon">{{isRecording ? '🔴' : '🎤'}}</text>
+      <text class="voice-btn-label">{{isRecording ? '松开结束' : '按住录音'}}</text>
+      <text class="voice-btn-time" wx:if="{{isRecording}}">{{recordSeconds}}s</text>
+    </view>
+
+    <!-- 识别结果 -->
+    <view class="voice-result" wx:if="{{recognizedText}}">
+      <view class="result-label">识别结果：</view>
+      <view class="result-text">{{recognizedText}}</view>
+      <view class="result-actions">
+        <button class="btn btn-outline" bindtap="onVoiceRetry">🔄 重新录音</button>
+        <button class="btn btn-primary" bindtap="onVoiceConfirm">✅ 确认为工作任务</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 剪贴板模式 ===== -->
+  <view class="mode-panel" wx:if="{{mode === 'clipboard'}}">
+    <view class="clipboard-hint" wx:if="{{!clipboardFetched}}">
+      点击下方按钮获取剪贴板中的内容
+    </view>
+    <button class="btn btn-primary btn-large" bindtap="onGetClipboard" wx:if="{{!clipboardFetched}}">
+      📋 获取剪贴板内容
+    </button>
+
+    <view class="clipboard-result" wx:if="{{clipboardFetched}}">
+      <view class="result-label">剪贴板内容：</view>
+      <view class="result-text">{{clipboardText || '(剪贴板为空)'}}</view>
+      <view class="result-actions" wx:if="{{clipboardText}}">
+        <button class="btn btn-primary" bindtap="onClipboardConfirm">✅ 确认为工作任务</button>
+      </view>
+      <view class="result-actions" wx:else>
+        <button class="btn btn-outline" bindtap="onGetClipboard">🔄 重新获取</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 手动模式 ===== -->
+  <view class="mode-panel" wx:if="{{mode === 'manual'}}">
+    <textarea
+      class="manual-input"
+      placeholder="请输入工作任务内容..."
+      value="{{manualInput}}"
+      bindinput="onManualInput"
+      maxlength="500"
+      auto-height
+    />
+    <view class="input-counter">{{manualInput.length}}/500</view>
+    <button
+      class="btn btn-primary btn-large"
+      bindtap="onManualConfirm"
+      disabled="{{!manualInput.trim()}}"
+    >✅ 确认为工作任务</button>
+  </view>
+
+</view>
+
+<!-- ===== 确认弹窗（卡片式 Modal） ===== -->
+<view class="confirm-overlay" wx:if="{{showConfirm}}" bindtap="hideConfirmDialog">
+  <view class="confirm-dialog" catchtap="noop">
+    <view class="dialog-title">确认任务信息</view>
+
+    <!-- 任务内容（不可编辑） -->
+    <view class="dialog-field">
+      <view class="field-label">任务内容</view>
+      <view class="field-content readonly">{{taskContent}}</view>
+    </view>
+
+    <!-- 截止日期 -->
+    <view class="dialog-field">
+      <view class="field-label">截止日期</view>
+      <picker mode="date" value="{{dueDate}}" bindchange="onDueDateChange">
+        <view class="field-picker">{{dueDate || '请选择日期'}}</view>
+      </picker>
+    </view>
+
+    <!-- 优先级选择 -->
+    <view class="dialog-field">
+      <view class="field-label">优先级</view>
+      <view class="priority-row">
+        <view
+          class="priority-btn high {{priority === 'high' ? 'active' : ''}}"
+          data-priority="high"
+          bindtap="onPriorityTap"
+        >🔴 高</view>
+        <view
+          class="priority-btn medium {{priority === 'medium' ? 'active' : ''}}"
+          data-priority="medium"
+          bindtap="onPriorityTap"
+        >🟡 中</view>
+        <view
+          class="priority-btn low {{priority === 'low' ? 'active' : ''}}"
+          data-priority="low"
+          bindtap="onPriorityTap"
+        >🟢 低</view>
+      </view>
+    </view>
+
+    <!-- 提醒方式 -->
+    <view class="dialog-field">
+      <view class="field-label">提醒方式</view>
+      <view class="remind-mode-row">
+        <view
+          class="remind-mode-btn {{remindMode === 'fixed' ? 'active' : ''}}"
+          data-mode="fixed"
+          bindtap="onRemindModeTap"
+        >⏰ 定时提醒</view>
+        <view
+          class="remind-mode-btn {{remindMode === 'flexible' ? 'active' : ''}}"
+          data-mode="flexible"
+          bindtap="onRemindModeTap"
+        >🔄 间隔提醒</view>
+      </view>
+    </view>
+
+    <!-- 定时模式 → 时间选择器 -->
+    <view class="dialog-field" wx:if="{{remindMode === 'fixed'}}">
+      <view class="field-label">提醒时间</view>
+      <picker mode="time" value="{{remindTime}}" bindchange="onRemindTimeChange">
+        <view class="field-picker">{{remindTime}}</view>
+      </picker>
+    </view>
+
+    <!-- 间隔模式 → 分钟数输入 -->
+    <view class="dialog-field" wx:if="{{remindMode === 'flexible'}}">
+      <view class="field-label">提醒间隔（分钟）</view>
+      <input
+        class="field-input"
+        type="number"
+        value="{{remindInterval}}"
+        bindinput="onRemindIntervalChange"
+        placeholder="60"
+      />
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="dialog-footer">
+      <button class="btn btn-outline" bindtap="hideConfirmDialog">取消</button>
+      <button class="btn btn-primary" bindtap="submitTask">确认添加</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,87 @@
+<!-- pages/detail/detail.wxml — 任务详情页 -->
+<view wx:if="{{task}}" class="page">
+  <!-- 优先级色条 -->
+  <view class="priority-bar priority-{{task.priority}}"></view>
+
+  <!-- 主内容区 -->
+  <view class="card content-card">
+    <view class="task-content">{{task.content}}</view>
+
+    <!-- 标签行：来源 + 优先级 -->
+    <view class="tag-row">
+      <view class="tag source-tag source-{{task.source}}">{{sourceLabel}}</view>
+      <view class="tag priority-tag priority-{{task.priority}}">{{priorityLabel}}</view>
+      <view wx:if="{{task.status === 'done'}}" class="tag status-done-tag">已完成</view>
+      <view wx:else class="tag status-pending-tag">待完成</view>
+    </view>
+  </view>
+
+  <!-- 详细信息卡片 -->
+  <view class="card info-card">
+    <view class="info-title">详细信息</view>
+
+    <view class="info-row">
+      <text class="info-label">截止日期</text>
+      <view class="info-value">
+        <text class="date-relative">{{relativeDue}}</text>
+        <text class="date-absolute">{{task.due_date}}</text>
+      </view>
+    </view>
+
+    <view class="info-row" wx:if="{{task.remind_at && task.remind_at.length > 0}}">
+      <text class="info-label">提醒时间</text>
+      <text class="info-value">{{task.remind_at.join('、')}}</text>
+    </view>
+
+    <view class="info-row" wx:if="{{task.remind_mode}}">
+      <text class="info-label">提醒模式</text>
+      <text class="info-value">
+        {{task.remind_mode === 'flexible' ? '间隔提醒 (' + task.remind_interval_minutes + '分钟)' : '固定时间'}}
+      </text>
+    </view>
+
+    <view class="info-row" wx:if="{{task.tags && task.tags.length > 0}}">
+      <text class="info-label">标签</text>
+      <view class="info-value tag-list">
+        <text wx:for="{{task.tags}}" wx:key="*this" class="mini-tag">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="info-row" wx:if="{{task.notes}}">
+      <text class="info-label">备注</text>
+      <text class="info-value notes-text">{{task.notes}}</text>
+    </view>
+
+    <view class="divider"></view>
+
+    <view class="info-row">
+      <text class="info-label">创建时间</text>
+      <text class="info-value">{{createdTime}}</text>
+    </view>
+
+    <view class="info-row" wx:if="{{task.completed_at}}">
+      <text class="info-label">完成时间</text>
+      <text class="info-value completed-time">{{completedTime}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-area">
+    <button class="btn btn-toggle" bindtap="onToggleStatus">
+      {{task.status === 'done' ? '🔄 重新打开' : '✅ 标记完成'}}
+    </button>
+    <button class="btn btn-delete" bindtap="onDelete">
+      🗑 删除任务
+    </button>
+  </view>
+</view>
+
+<!-- 加载中 / 不存在 -->
+<view wx:else class="empty-page">
+  <block wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </block>
+  <block wx:else>
+    <text class="empty-text">任务不存在或已被删除</text>
+  </block>
+</view>

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "添加任务",
+  "usingComponents": {
+    "voice-input": "/components/voice-input/voice-input",
+    "confirm-dialog": "/components/confirm-dialog/confirm-dialog"
+  }
+}

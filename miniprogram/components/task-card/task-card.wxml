@@ -1,0 +1,39 @@
+<view class="task-card {{completed ? 'completed' : ''}}" bind:tap="onTap">
+  <!-- 优先级色条 -->
+  <view class="priority-bar" style="background: {{priorityColor}};"></view>
+
+  <!-- 主体内容 -->
+  <view class="card-body">
+    <!-- 顶部：内容 + 完成按钮 -->
+    <view class="card-header">
+      <view class="task-content {{completed ? 'text-done' : ''}}">{{task.content}}</view>
+      <view
+        wx:if="{{showActions}}"
+        class="complete-btn {{completed ? 'checked' : ''}}"
+        catch:tap="onToggleComplete"
+      >
+        <text>{{completed ? '✓' : '○'}}</text>
+      </view>
+    </view>
+
+    <!-- 底部信息行 -->
+    <view class="card-footer">
+      <!-- 来源标签 -->
+      <view class="source-tag" wx:if="{{task.source}}">
+        {{task.source}}
+      </view>
+
+      <!-- 截止日期 -->
+      <view class="deadline {{task.deadline && new Date(task.deadline).getTime() < Date.now() ? 'overdue' : ''}}" wx:if="{{relativeTime}}">
+        <text class="deadline-icon">⏰</text>
+        <text>{{relativeTime}}</text>
+      </view>
+
+      <!-- 提醒信息 -->
+      <view class="reminder-info" wx:if="{{task.reminder}}">
+        <text class="reminder-icon">🔔</text>
+        <text>{{task.reminder}}</text>
+      </view>
+    </view>
+  </view>
+</view>

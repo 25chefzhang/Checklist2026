@@ -1,0 +1,104 @@
+<!-- pages/summary/summary.wxml — 工作总结页 -->
+<view class="page">
+  <!-- 统计卡片三栏 -->
+  <view class="stats-row">
+    <view class="stat-card">
+      <view class="stat-num">{{stats.total}}</view>
+      <view class="stat-label">总任务</view>
+    </view>
+    <view class="stat-card stat-success">
+      <view class="stat-num">{{stats.completed}}</view>
+      <view class="stat-label">已完成</view>
+    </view>
+    <view class="stat-card stat-pending">
+      <view class="stat-num">{{stats.pending}}</view>
+      <view class="stat-label">待完成</view>
+    </view>
+  </view>
+
+  <!-- 按来源分布 -->
+  <view class="card">
+    <view class="section-title">任务来源分布</view>
+    <view class="source-bars">
+      <view class="source-row">
+        <text class="source-name">语音录入</text>
+        <view class="source-bar-wrap">
+          <view class="source-bar-fill" style="width: {{sourceMax > 0 ? stats.bySource.voice / sourceMax * 100 : 0}}%"></view>
+        </view>
+        <text class="source-count">{{stats.bySource.voice}}</text>
+      </view>
+      <view class="source-row">
+        <text class="source-name">剪贴板</text>
+        <view class="source-bar-wrap">
+          <view class="source-bar-fill clipboard" style="width: {{sourceMax > 0 ? stats.bySource.clipboard / sourceMax * 100 : 0}}%"></view>
+        </view>
+        <text class="source-count">{{stats.bySource.clipboard}}</text>
+      </view>
+      <view class="source-row">
+        <text class="source-name">手动录入</text>
+        <view class="source-bar-wrap">
+          <view class="source-bar-fill manual" style="width: {{sourceMax > 0 ? stats.bySource.manual / sourceMax * 100 : 0}}%"></view>
+        </view>
+        <text class="source-count">{{stats.bySource.manual}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 按优先级分布 -->
+  <view class="card">
+    <view class="section-title">优先级分布</view>
+    <view class="priority-dots">
+      <view class="priority-item">
+        <view class="dot dot-high"></view>
+        <text>高 {{stats.byPriority.high}}</text>
+      </view>
+      <view class="priority-item">
+        <view class="dot dot-medium"></view>
+        <text>中 {{stats.byPriority.medium}}</text>
+      </view>
+      <view class="priority-item">
+        <view class="dot dot-low"></view>
+        <text>低 {{stats.byPriority.low}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 月度趋势 -->
+  <view class="card" wx:if="{{stats.monthly && stats.monthly.length > 0}}">
+    <view class="section-title">月度趋势</view>
+    <view class="monthly-list">
+      <view wx:for="{{stats.monthly}}" wx:key="month" class="monthly-row">
+        <text class="month-label">{{item.month}}</text>
+        <view class="monthly-bar-wrap">
+          <view class="monthly-bar-fill" style="width: {{item.total > 0 ? item.completed / item.total * 100 : 0}}%"></view>
+        </view>
+        <text class="monthly-fraction">{{item.completed}}/{{item.total}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 文本总结 -->
+  <view class="card summary-text-card">
+    <view class="section-title">自动总结</view>
+    <view class="summary-text">{{summaryText}}</view>
+  </view>
+
+  <!-- 最近完成任务 -->
+  <view class="card">
+    <view class="section-title">
+      最近完成
+      <text class="section-sub">（前 20 条）</text>
+    </view>
+    <view wx:if="{{recentCompleted.length > 0}}" class="mini-task-list">
+      <view wx:for="{{recentCompleted}}" wx:key="_id" class="mini-task">
+        <view class="mini-check">✓</view>
+        <view class="mini-content">{{item.content}}</view>
+        <view class="mini-date">{{item.due_date}}</view>
+      </view>
+    </view>
+    <view wx:else class="empty-hint">暂无已完成任务</view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-spacer"></view>
+</view>

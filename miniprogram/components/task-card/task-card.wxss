@@ -1,0 +1,117 @@
+.task-card {
+  display: flex;
+  flex-direction: row;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  margin: 12rpx 24rpx;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+}
+
+/* 优先级左侧色条 */
+.priority-bar {
+  width: 8rpx;
+  min-width: 8rpx;
+  flex-shrink: 0;
+  border-radius: 8rpx 0 0 8rpx;
+}
+
+/* 卡片主体 */
+.card-body {
+  flex: 1;
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 头部：内容 + 完成按钮 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.task-content {
+  flex: 1;
+  font-size: 30rpx;
+  color: #333;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+/* 已完成 - 删除线 + 灰色 */
+.task-card.completed .task-content,
+.text-done {
+  color: #bbb !important;
+  text-decoration: line-through;
+}
+
+.task-card.completed {
+  opacity: 0.7;
+}
+
+/* 完成按钮 */
+.complete-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  border: 3rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #ccc;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.complete-btn.checked {
+  background: #4caf50;
+  border-color: #4caf50;
+  color: #fff;
+}
+
+/* 底部信息行 */
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.source-tag {
+  font-size: 22rpx;
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.08);
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.deadline {
+  font-size: 22rpx;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.deadline.overdue {
+  color: #f44336;
+  font-weight: 500;
+}
+
+.deadline-icon,
+.reminder-icon {
+  font-size: 20rpx;
+}
+
+.reminder-info {
+  font-size: 22rpx;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
