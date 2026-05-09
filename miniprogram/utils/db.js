@@ -8,7 +8,10 @@ function getDB() {
   return _db
 }
 
-const _ = getDB().command
+// ===== 懒加载 command =====
+function cmd() {
+  return getDB().command
+}
 
 // ===== 任务 CRUD =====
 
@@ -23,7 +26,7 @@ async function getRecentTasks(openid) {
     .where({
       _openid: openid,
       status: 'pending',
-      due_date: _.gte(range.start).and(_.lte(range.end))
+      due_date: cmd().gte(range.start).and(cmd().lte(range.end))
     })
     .orderBy('due_date', 'asc')
     .orderBy('priority_order', 'desc')
@@ -125,7 +128,7 @@ async function getCompletedTasks(openid, months = 4) {
     .where({
       _openid: openid,
       status: 'done',
-      completed_at: _.gte(startDate.toISOString())
+      completed_at: cmd().gte(startDate.toISOString())
     })
     .orderBy('completed_at', 'desc')
     .limit(500)
@@ -145,7 +148,7 @@ async function getAllTasks(openid, months = 4) {
   const res = await db.collection('tasks')
     .where({
       _openid: openid,
-      created_at: _.gte(startDate.toISOString())
+      created_at: cmd().gte(startDate.toISOString())
     })
     .orderBy('created_at', 'desc')
     .limit(500)
@@ -166,7 +169,7 @@ async function getPendingReminders() {
   const res = await db.collection('reminders')
     .where({
       status: 'pending',
-      remind_time: _.lte(now)
+      remind_time: cmd().lte(now)
     })
     .limit(50)
     .get()
