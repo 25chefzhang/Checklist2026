@@ -23,21 +23,21 @@
       <view class="source-row">
         <text class="source-name">语音录入</text>
         <view class="source-bar-wrap">
-          <view class="source-bar-fill" style="width: {{sourceMax > 0 ? stats.bySource.voice / sourceMax * 100 : 0}}%"></view>
+          <view class="source-bar-fill" style="width: {{sourcePercent.voice}}%"></view>
         </view>
         <text class="source-count">{{stats.bySource.voice}}</text>
       </view>
       <view class="source-row">
         <text class="source-name">剪贴板</text>
         <view class="source-bar-wrap">
-          <view class="source-bar-fill clipboard" style="width: {{sourceMax > 0 ? stats.bySource.clipboard / sourceMax * 100 : 0}}%"></view>
+          <view class="source-bar-fill clipboard" style="width: {{sourcePercent.clipboard}}%"></view>
         </view>
         <text class="source-count">{{stats.bySource.clipboard}}</text>
       </view>
       <view class="source-row">
         <text class="source-name">手动录入</text>
         <view class="source-bar-wrap">
-          <view class="source-bar-fill manual" style="width: {{sourceMax > 0 ? stats.bySource.manual / sourceMax * 100 : 0}}%"></view>
+          <view class="source-bar-fill manual" style="width: {{sourcePercent.manual}}%"></view>
         </view>
         <text class="source-count">{{stats.bySource.manual}}</text>
       </view>
@@ -70,7 +70,7 @@
       <view wx:for="{{stats.monthly}}" wx:key="month" class="monthly-row">
         <text class="month-label">{{item.month}}</text>
         <view class="monthly-bar-wrap">
-          <view class="monthly-bar-fill" style="width: {{item.total > 0 ? item.completed / item.total * 100 : 0}}%"></view>
+          <view class="monthly-bar-fill" style="width: {{item.percent}}%"></view>
         </view>
         <text class="monthly-fraction">{{item.completed}}/{{item.total}}</text>
       </view>

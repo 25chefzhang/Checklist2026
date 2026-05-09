@@ -36,7 +36,7 @@
     <view class="info-row" wx:if="{{task.remind_mode}}">
       <text class="info-label">提醒模式</text>
       <text class="info-value">
-        {{task.remind_mode === 'flexible' ? '间隔提醒 (' + task.remind_interval_minutes + '分钟)' : '固定时间'}}
+        {{remindModeLabel}}
       </text>
     </view>
 

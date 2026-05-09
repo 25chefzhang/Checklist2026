@@ -1,4 +1,4 @@
-<view class="task-card {{completed ? 'completed' : ''}}" bind:tap="onTap">
+<view class="task-card {{completed ? 'completed' : ''}}" bindtap="onTap">
   <!-- 优先级色条 -->
   <view class="priority-bar" style="background: {{priorityColor}};"></view>
 
@@ -10,7 +10,7 @@
       <view
         wx:if="{{showActions}}"
         class="complete-btn {{completed ? 'checked' : ''}}"
-        catch:tap="onToggleComplete"
+        catchtap="onToggleComplete"
       >
         <text>{{completed ? '✓' : '○'}}</text>
       </view>
@@ -24,7 +24,7 @@
       </view>
 
       <!-- 截止日期 -->
-      <view class="deadline {{task.deadline && new Date(task.deadline).getTime() < Date.now() ? 'overdue' : ''}}" wx:if="{{relativeTime}}">
+      <view class="deadline {{isOverdue ? 'overdue' : ''}}" wx:if="{{relativeTime}}">
         <text class="deadline-icon">⏰</text>
         <text>{{relativeTime}}</text>
       </view>

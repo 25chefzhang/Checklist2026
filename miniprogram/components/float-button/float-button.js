@@ -10,23 +10,28 @@ Component({
     expanded: false,
     x: 0,
     y: 0,
-    // 菜单项配置
+    windowHeight: 0,
+    menuBottom: 0,
+    // 菜单项配置（预计算 animation-delay）
     menus: [
-      { icon: '＋', label: '快速添加', url: '/pages/add/add?mode=manual', key: 'manual' },
-      { icon: '🎤', label: '语音录入', url: '/pages/add/add?mode=voice', key: 'voice' },
-      { icon: '📋', label: '剪贴板', url: '/pages/add/add?mode=clipboard', key: 'clipboard' },
-      { icon: '📋', label: '查看列表', url: '/pages/index/index', key: 'list' }
+      { icon: '＋', label: '快速添加', url: '/pages/add/add?mode=manual', key: 'manual', delay: '0.00' },
+      { icon: '🎤', label: '语音录入', url: '/pages/add/add?mode=voice', key: 'voice', delay: '0.05' },
+      { icon: '📋', label: '剪贴板', url: '/pages/add/add?mode=clipboard', key: 'clipboard', delay: '0.10' },
+      { icon: '📋', label: '查看列表', url: '/pages/index/index', key: 'list', delay: '0.15' }
     ]
   },
 
   lifetimes: {
     attached() {
-      // 获取屏幕尺寸，设置初始位置
       const systemInfo = wx.getSystemInfoSync();
       const btnSize = 50; // 100rpx / 2 ≈ 50px
+      const x = systemInfo.windowWidth - btnSize - 20;
+      const y = systemInfo.windowHeight - btnSize - 100;
       this.setData({
-        x: systemInfo.windowWidth - btnSize - 20,
-        y: systemInfo.windowHeight - btnSize - 100
+        x,
+        y,
+        windowHeight: systemInfo.windowHeight,
+        menuBottom: systemInfo.windowHeight - y - 50
       });
     }
   },
@@ -51,7 +56,6 @@ Component({
       this.collapse();
 
       if (menu.key === 'list') {
-        // 切换到首页
         wx.switchTab({ url: menu.url });
       } else {
         wx.navigateTo({ url: menu.url });
@@ -62,17 +66,20 @@ Component({
     onTouchMove(e) {
       const touch = e.touches[0];
       const systemInfo = wx.getSystemInfoSync();
-      const btnSize = 50; // 半宽
+      const btnSize = 50;
       let x = touch.clientX - btnSize;
       let y = touch.clientY - btnSize;
 
-      // 限制在屏幕内
       if (x < 0) x = 0;
       if (y < 0) y = 0;
       if (x > systemInfo.windowWidth - btnSize * 2) x = systemInfo.windowWidth - btnSize * 2;
       if (y > systemInfo.windowHeight - btnSize * 2) y = systemInfo.windowHeight - btnSize * 2;
 
-      this.setData({ x, y });
+      this.setData({
+        x,
+        y,
+        menuBottom: systemInfo.windowHeight - y - 50
+      });
     },
 
     /** 阻止冒泡（点击菜单区域不收起） */

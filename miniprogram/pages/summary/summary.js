@@ -13,6 +13,11 @@ Page({
       monthly: []
     },
     sourceMax: 0,
+    sourcePercent: {
+      voice: 0,
+      clipboard: 0,
+      manual: 0
+    },
     summaryText: '',
     recentCompleted: []
   },
@@ -47,9 +52,23 @@ Page({
         1 // 避免全 0 时除零
       )
 
+      // 预计算来源分布百分比（避免 WXML 中做除法）
+      const sourcePercent = {
+        voice: sourceMax > 0 ? Math.round(stats.bySource.voice / sourceMax * 100) : 0,
+        clipboard: sourceMax > 0 ? Math.round(stats.bySource.clipboard / sourceMax * 100) : 0,
+        manual: sourceMax > 0 ? Math.round(stats.bySource.manual / sourceMax * 100) : 0
+      }
+
+      // 预计算月度趋势百分比
+      stats.monthly = stats.monthly.map(m => ({
+        ...m,
+        percent: m.total > 0 ? Math.round(m.completed / m.total * 100) : 0
+      }))
+
       this.setData({
         stats,
         sourceMax,
+        sourcePercent,
         summaryText,
         recentCompleted
       })

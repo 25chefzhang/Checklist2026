@@ -1,9 +1,9 @@
 <view class="dialog-container" wx:if="{{visible}}">
   <!-- 遮罩层 -->
-  <view class="mask" bind:tap="onMaskTap" catch:touchmove="noop"></view>
+  <view class="mask" bindtap="onMaskTap" catchtouchmove="noop"></view>
 
   <!-- 弹窗卡片 -->
-  <view class="dialog-card" catch:tap="noop">
+  <view class="dialog-card" catchtap="noop">
     <!-- 标题 -->
     <view class="dialog-title">{{title}}</view>
 
@@ -15,11 +15,11 @@
       <view
         wx:if="{{showCancel}}"
         class="dialog-btn cancel-btn"
-        bind:tap="onCancel"
+        bindtap="onCancel"
       >{{cancelText}}</view>
       <view
         class="dialog-btn confirm-btn {{showCancel ? '' : 'full-width'}}"
-        bind:tap="onConfirm"
+        bindtap="onConfirm"
       >{{confirmText}}</view>
     </view>
   </view>

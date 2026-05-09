@@ -1,16 +1,16 @@
 <view class="float-button-container" wx:if="{{visible}}">
   <!-- 展开时的遮罩层 -->
-  <view class="mask" wx:if="{{expanded}}" bind:tap="collapse" catch:touchmove="noop"></view>
+  <view class="mask" wx:if="{{expanded}}" bindtap="collapse" catchtouchmove="noop"></view>
 
   <!-- 菜单项列表 -->
-  <view class="menu-items" wx:if="{{expanded}}" style="left: {{x}}px; bottom: {{windowHeight - y - 50}}px;">
+  <view class="menu-items" wx:if="{{expanded}}" style="left: {{x}}px; bottom: {{menuBottom}}px;">
     <view
       class="menu-item"
       wx:for="{{menus}}"
       wx:key="key"
       data-index="{{index}}"
-      bind:tap="onMenuItemTap"
-      style="animation-delay: {{index * 0.05}}s;"
+      bindtap="onMenuItemTap"
+      style="animation-delay: {{item.delay}}s;"
     >
       <view class="menu-icon">{{item.icon}}</view>
       <view class="menu-label">{{item.label}}</view>
@@ -21,8 +21,8 @@
   <view
     class="main-btn {{expanded ? 'expanded' : ''}}"
     style="left: {{x}}px; top: {{y}}px;"
-    bind:tap="toggleExpand"
-    catch:touchmove="onTouchMove"
+    bindtap="toggleExpand"
+    catchtouchmove="onTouchMove"
   >
     <text class="btn-icon">{{expanded ? '✕' : '＋'}}</text>
   </view>

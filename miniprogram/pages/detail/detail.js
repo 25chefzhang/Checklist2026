@@ -22,7 +22,8 @@ Page({
     priorityLabel: '',
     relativeDue: '',
     createdTime: '',
-    completedTime: ''
+    completedTime: '',
+    remindModeLabel: ''
   },
 
   onLoad(options) {
@@ -43,6 +44,12 @@ Page({
         return
       }
 
+      // 预计算提醒模式标签（避免 WXML 字符串拼接）
+      let remindModeLabel = '固定时间'
+      if (task.remind_mode === 'flexible') {
+        remindModeLabel = `间隔提醒 (${task.remind_interval_minutes}分钟)`
+      }
+
       this.setData({
         task: task,
         loading: false,
@@ -52,7 +59,8 @@ Page({
         createdTime: dateUtil.formatDateTime(new Date(task.created_at)),
         completedTime: task.completed_at
           ? dateUtil.formatDateTime(new Date(task.completed_at))
-          : ''
+          : '',
+        remindModeLabel
       })
     } catch (e) {
       console.error('加载任务失败:', e)

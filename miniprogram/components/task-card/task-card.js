@@ -13,7 +13,8 @@ Component({
   data: {
     relativeTime: '',
     priorityColor: '',
-    completed: false
+    completed: false,
+    isOverdue: false
   },
 
   observers: {
@@ -21,7 +22,18 @@ Component({
       if (!task) return;
       this.updateRelativeTime(task.deadline);
       this.setPriorityColor(task.priority);
-      this.setData({ completed: task.completed || false });
+
+      // 预计算是否已过期（避免 WXML 中执行 new Date() 和算术比较）
+      let isOverdue = false;
+      if (task.deadline) {
+        const deadlineTime = new Date(task.deadline).getTime();
+        isOverdue = deadlineTime < Date.now();
+      }
+
+      this.setData({
+        completed: task.completed || false,
+        isOverdue
+      });
     }
   },
 
@@ -31,7 +43,17 @@ Component({
       if (task) {
         this.updateRelativeTime(task.deadline);
         this.setPriorityColor(task.priority);
-        this.setData({ completed: task.completed || false });
+
+        let isOverdue = false;
+        if (task.deadline) {
+          const deadlineTime = new Date(task.deadline).getTime();
+          isOverdue = deadlineTime < Date.now();
+        }
+
+        this.setData({
+          completed: task.completed || false,
+          isOverdue
+        });
       }
     }
   },
