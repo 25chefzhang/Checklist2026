@@ -1,6 +1,5 @@
-// utils/reminder.js — 提醒引擎（前台轮询 + 语音播报）
+// utils/reminder.js — 提醒引擎（前台轮询 + 弹窗提醒）
 const db = require('./db.js')
-const voice = require('./voice.js')
 const app = getApp()
 
 class ReminderManager {
@@ -77,20 +76,15 @@ class ReminderManager {
         return
       }
 
-      // 语音播报（如果未在播报中）
+      // Toast + 震动提醒（TTS 已降级）
       if (!this.isSpeaking) {
         this.isSpeaking = true
-        try {
-          const speakText = `提醒：${task.content}`
-          await voice.speakText(speakText)
-        } catch (e) {
-          console.error('语音播报失败:', e)
-        }
+        wx.showToast({ title: `⏰ ${task.content}`, icon: 'none', duration: 3000 })
+        wx.vibrateLong({ fail: () => {} })
+        // 等待 toast 显示完毕后再弹窗
+        await new Promise(r => setTimeout(r, 1500))
         this.isSpeaking = false
       }
-
-      // 震动提醒
-      wx.vibrateLong({ fail: () => {} })
 
       // 弹窗确认
       await this.showReminderDialog(task, reminder)

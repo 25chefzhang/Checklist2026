@@ -1,5 +1,8 @@
+// components/voice-input/voice-input.js — 语音输入组件
+// 已移除 WechatSI 插件依赖，改用 voice.js 工具（云函数识别降级方案）
+
 const recorderManager = wx.getRecorderManager();
-const plugin = requirePlugin('WechatSI');
+const voice = require('../../utils/voice.js');
 
 Component({
   properties: {
@@ -10,7 +13,7 @@ Component({
   },
 
   data: {
-    status: 'idle',       // idle | recording | recognizing | done
+    status: 'idle',       // idle | recording | recognizing | done | error
     duration: 0,          // 当前录音秒数
     timer: null           // 计时器引用
   },
@@ -35,15 +38,21 @@ Component({
         this.triggerEvent('statuschange', { status: 'recording' });
       });
 
-      // 监听录音结束
+      // 监听录音结束 → 上传 + 云函数识别
       recorderManager.onStop((res) => {
         console.log('[voice-input] 录音结束', res);
         this._stopTimer();
         this.setData({ status: 'recognizing' });
         this.triggerEvent('statuschange', { status: 'recognizing' });
 
-        // 使用 WechatSI 进行语音识别
-        this._recognize(res.tempFilePath);
+        if (res.tempFilePath) {
+          this._recognize(res.tempFilePath);
+        } else {
+          this.setData({ status: 'error', duration: 0 });
+          this.triggerEvent('error', { message: '录音文件为空' });
+          this.triggerEvent('statuschange', { status: 'error' });
+          this._resetAfterDelay();
+        }
       });
 
       // 监听录音错误
@@ -79,48 +88,42 @@ Component({
       }
     },
 
-    /** 语音识别 */
-    _recognize(tempFilePath) {
-      const manager = plugin.getRecordRecognitionManager();
+    /** 语音识别：上传到云存储 → 调用云函数 */
+    async _recognize(tempFilePath) {
+      try {
+        const text = await voice.uploadAndRecognize(tempFilePath);
+        console.log('[voice-input] 识别完成:', text);
 
-      manager.onRecognize = (res) => {
-        console.log('[voice-input] 识别中', res);
-      };
-
-      manager.onStop = (res) => {
-        console.log('[voice-input] 识别完成', res);
         this.setData({ status: 'done', duration: 0 });
 
-        if (res.result) {
-          this.triggerEvent('result', { text: res.result });
+        if (text) {
+          this.triggerEvent('result', { text });
         } else {
-          this.triggerEvent('error', { message: '未识别到语音内容' });
+          this.setData({ status: 'error' });
+          this.triggerEvent('error', { message: '语音识别失败，请手动输入' });
         }
 
-        this.triggerEvent('statuschange', { status: 'done' });
+        this.triggerEvent('statuschange', { status: text ? 'done' : 'error' });
 
         // 短暂延迟后回到 idle
-        setTimeout(() => {
-          if (this.data.status === 'done') {
-            this.setData({ status: 'idle' });
-            this.triggerEvent('statuschange', { status: 'idle' });
-          }
-        }, 1500);
-      };
+        this._resetAfterDelay();
+      } catch (e) {
+        console.error('[voice-input] 识别异常:', e);
+        this.setData({ status: 'error', duration: 0 });
+        this.triggerEvent('error', { message: '语音识别失败，请手动输入' });
+        this.triggerEvent('statuschange', { status: 'error' });
+        this._resetAfterDelay();
+      }
+    },
 
-      manager.onError = (err) => {
-        console.error('[voice-input] 识别错误', err);
-        this.setData({ status: 'idle', duration: 0 });
-        this.triggerEvent('error', { message: err.errMsg || '语音识别失败' });
-        this.triggerEvent('statuschange', { status: 'idle' });
-      };
-
-      // 开始识别
-      manager.start({
-        lang: 'zh_CN',
-        duration: this.data.maxDuration * 1000,
-        tempFilePath: tempFilePath
-      });
+    /** 延迟重置状态 */
+    _resetAfterDelay() {
+      setTimeout(() => {
+        if (this.data.status === 'done' || this.data.status === 'error') {
+          this.setData({ status: 'idle' });
+          this.triggerEvent('statuschange', { status: 'idle' });
+        }
+      }, 2000);
     },
 
     /** 按下开始录音 */

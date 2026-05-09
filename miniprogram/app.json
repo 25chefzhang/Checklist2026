@@ -11,12 +11,6 @@
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f6fa"
   },
-  "plugins": {
-    "WechatSI": {
-      "version": "0.3.5",
-      "provider": "wx069ba97219f66d99"
-    }
-  },
   "permission": {
     "scope.record": {
       "desc": "用于语音录入工作任务"

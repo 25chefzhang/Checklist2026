@@ -1,6 +1,6 @@
-// utils/voice.js — 语音录入与播报工具
+// utils/voice.js — 语音录入工具（纯原生 API + 云函数降级方案）
+// 已移除 WechatSI 插件依赖
 
-const plugin = requirePlugin('WechatSI')
 let recorderManager = null
 
 /**
@@ -52,71 +52,68 @@ function stopRecord() {
 }
 
 /**
- * 语音识别（使用同声传译插件的流式识别）
- * @returns {Promise<string>} 识别文本
+ * 上传录音文件到云存储，再调用云函数做语音识别
+ * @param {string} filePath 录音临时文件路径
+ * @returns {Promise<string>} 识别文本；失败时返回空字符串（调用方应回退到手动输入）
  */
-function recognizeVoice(filePath) {
-  return new Promise((resolve, reject) => {
-    const manager = plugin.getRecordRecognitionManager()
-    let finalText = ''
+async function uploadAndRecognize(filePath) {
+  // 1. 上传到云存储
+  const cloudPath = `voice/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.mp3`
+  let fileID = ''
 
-    manager.onRecognize = (res) => {
-      // 实时返回部分结果
-    }
-
-    manager.onStop = (res) => {
-      finalText = res.result || finalText
-      if (finalText) {
-        resolve(finalText)
-      } else {
-        reject(new Error('未识别到语音内容'))
-      }
-    }
-
-    manager.onError = (err) => {
-      reject(err)
-    }
-
-    // 开始识别
-    manager.start({
-      lang: 'zh_CN',
-      duration: 60000
+  try {
+    const uploadRes = await wx.cloud.uploadFile({
+      cloudPath,
+      filePath
     })
+    fileID = uploadRes.fileID
+    console.log('[voice] 音频已上传:', fileID)
+  } catch (e) {
+    console.error('[voice] 上传音频失败:', e)
+    return '' // 降级：返回空让调用方走手动输入
+  }
 
-    // 将录音文件传递给识别器
-    // 注：同声传译插件的 recordRecognitionManager 直接读取麦克风，
-    // 若需从文件识别，需使用 wx.createRecognitionTask (旧 API) 或服务端方案
-  })
+  // 2. 调用云函数识别
+  try {
+    const res = await wx.cloud.callFunction({
+      name: 'recognizeVoice',
+      data: { fileID }
+    })
+    const text = (res.result && res.result.text) ? res.result.text.trim() : ''
+    console.log('[voice] 识别结果:', text || '(空)')
+    return text
+  } catch (e) {
+    console.error('[voice] 云函数识别失败:', e)
+    return '' // 降级
+  }
 }
 
 /**
- * 语音播报（TTS 文字转语音）
- * @param {string} text - 要播报的文字
+ * 语音识别（便捷封装 — 上传 + 云函数识别）
+ * @param {string} filePath 录音临时文件路径
+ * @returns {Promise<string>} 识别文本；失败时返回空字符串
+ */
+function recognizeVoice(filePath) {
+  return uploadAndRecognize(filePath)
+}
+
+/**
+ * 语音播报（已降级 — TTS 不可用，改为震动 + toast）
+ * @param {string} text - 要播报的文字（保留兼容，实际仅震动）
  * @returns {Promise<void>}
  */
 function speakText(text) {
-  return new Promise((resolve, reject) => {
-    plugin.textToSpeech({
-      lang: 'zh_CN',
-      tts: true,
-      content: text,
-      success: (res) => {
-        const audio = wx.createInnerAudioContext()
-        audio.src = res.filename
-        audio.onEnded(() => {
-          audio.destroy()
-          resolve()
-        })
-        audio.onError((err) => {
-          audio.destroy()
-          reject(err)
-        })
-        audio.play()
-      },
-      fail: (err) => {
-        reject(err)
-      }
+  return new Promise((resolve) => {
+    wx.vibrateLong({
+      success: () => resolve(),
+      fail: () => resolve()
     })
+    // 也用 toast 提示一次
+    if (text) {
+      wx.showToast({ title: text, icon: 'none', duration: 2000 })
+    }
+    // 确保 resolve 一定会被调用
+    setTimeout(resolve, 100)
   })
 }
 
@@ -124,6 +121,7 @@ module.exports = {
   startRecord,
   stopRecord,
   recognizeVoice,
+  uploadAndRecognize,
   speakText,
   getRecorder
 }

@@ -1,0 +1,9 @@
+{
+  "name": "recognizeVoice",
+  "version": "1.0.0",
+  "description": "语音识别云函数 — 从云存储下载音频并调用腾讯云 ASR",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

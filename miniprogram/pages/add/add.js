@@ -1,9 +1,11 @@
 // pages/add/add.js — 添加任务页
+// 已移除 WechatSI 插件依赖，改用 voice.js 工具（云函数识别降级方案）
+
 const db = require('../../utils/db.js')
 const dateUtil = require('../../utils/date.js')
 const clipboardUtil = require('../../utils/clipboard.js')
 const reminderUtil = require('../../utils/reminder.js')
-const plugin = requirePlugin('WechatSI')
+const voice = require('../../utils/voice.js')
 
 const app = getApp()
 
@@ -36,8 +38,8 @@ Page({
 
   // ---- 录音相关 ----
   _recordTimer: null,
-  _recognitionManager: null,
   _recorderManager: null,
+  _tempFilePath: null,  // 录音临时文件路径
 
   // ================================================================
   //  生命周期
@@ -49,15 +51,11 @@ Page({
       this.setData({ mode: options.mode })
     }
 
-    // 2. 初始化录音管理器（用于权限申请 & 帧回调）
+    // 2. 初始化录音管理器（原生 API）
     this._recorderManager = wx.getRecorderManager()
     this._bindRecorderEvents()
 
-    // 3. 初始化同声传译识别管理器
-    this._recognitionManager = plugin.getRecordRecognitionManager()
-    this._bindRecognitionEvents()
-
-    // 4. 如果从 index 页检测剪贴板跳转过来（带 content 参数），自动弹出确认弹窗
+    // 3. 如果从 index 页检测剪贴板跳转过来（带 content 参数），自动弹出确认弹窗
     if (options.content && options.content.trim()) {
       const content = decodeURIComponent(options.content).trim()
       if (content) {
@@ -65,7 +63,7 @@ Page({
       }
     }
 
-    // 5. 设置默认截止日期为今天
+    // 4. 设置默认截止日期为今天
     this.setData({
       dueDate: dateUtil.formatDate(new Date())
     })
@@ -114,45 +112,56 @@ Page({
   //  语音模式
   // ================================================================
 
-  /** 绑定 RecorderManager 事件（用于帧回调驱动动画） */
+  /** 绑定 RecorderManager 事件 */
   _bindRecorderEvents() {
-    this._recorderManager.onFrameRecorded((res) => {
-      // 可用于音量可视化，此处仅做存在性占位
+    this._recorderManager.onStart(() => {
+      console.log('[add] 录音开始')
+      this.setData({ isRecording: true, recordSeconds: 0, recognizedText: '' })
+    })
+
+    this._recorderManager.onStop((res) => {
+      console.log('[add] 录音结束:', res)
+      this.setData({ isRecording: false })
+      this._clearRecordTimer()
+
+      if (res.tempFilePath) {
+        this._tempFilePath = res.tempFilePath
+        // 调用云函数识别
+        this._doRecognize(res.tempFilePath)
+      } else {
+        wx.showToast({ title: '录音文件为空', icon: 'none' })
+      }
     })
 
     this._recorderManager.onError((err) => {
-      console.error('录音错误:', err)
+      console.error('[add] 录音错误:', err)
       this.setData({ isRecording: false })
       this._clearRecordTimer()
       wx.showToast({ title: '录音失败，请重试', icon: 'none' })
     })
+
+    this._recorderManager.onFrameRecorded((res) => {
+      // 可用于音量可视化，此处仅做存在性占位
+    })
   },
 
-  /** 绑定同声传译识别事件 */
-  _bindRecognitionEvents() {
-    this._recognitionManager.onRecognize = (res) => {
-      // 实时部分结果（可选展示）
-      console.log('实时识别:', res.result)
-    }
+  /** 调用云函数做语音识别 */
+  async _doRecognize(filePath) {
+    wx.showLoading({ title: '识别中...' })
+    try {
+      const text = await voice.recognizeVoice(filePath)
+      wx.hideLoading()
 
-    this._recognitionManager.onStop = (res) => {
-      console.log('识别完成:', res.result)
-      this.setData({ isRecording: false })
-      this._clearRecordTimer()
-
-      const text = (res.result || '').trim()
       if (text) {
         this.setData({ recognizedText: text })
+        console.log('[add] 识别成功:', text)
       } else {
-        wx.showToast({ title: '未识别到语音内容', icon: 'none' })
+        wx.showToast({ title: '语音识别失败，请手动输入', icon: 'none' })
       }
-    }
-
-    this._recognitionManager.onError = (err) => {
-      console.error('语音识别错误:', err)
-      this.setData({ isRecording: false })
-      this._clearRecordTimer()
-      wx.showToast({ title: '语音识别失败', icon: 'none' })
+    } catch (e) {
+      wx.hideLoading()
+      console.error('[add] 识别异常:', e)
+      wx.showToast({ title: '语音识别失败，请手动输入', icon: 'none' })
     }
   },
 
@@ -178,16 +187,15 @@ Page({
   },
 
   _startRecording() {
-    this.setData({
-      isRecording: true,
-      recordSeconds: 0,
-      recognizedText: ''
-    })
+    this._tempFilePath = null
 
-    // 启动同声传译识别（内部自动开启录音）
-    this._recognitionManager.start({
-      lang: 'zh_CN',
-      duration: 60000
+    // 使用原生 RecorderManager 开始录音
+    this._recorderManager.start({
+      duration: 60000,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 48000,
+      format: 'mp3'
     })
 
     // 计时器（UI 展示用）
@@ -205,8 +213,8 @@ Page({
   onVoiceTouchEnd() {
     if (!this.data.isRecording) return
 
-    // 同声传译管理器停止 → 触发 onStop 回调
-    this._recognitionManager.stop()
+    // 停止原生录音
+    this._recorderManager.stop()
   },
 
   /** 清除计时器 */
