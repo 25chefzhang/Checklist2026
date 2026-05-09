@@ -153,7 +153,6 @@ class ReminderManager {
 
     // 创建一个即时提醒
     const reminder = {
-      _openid: task._openid,
       task_id: taskId,
       remind_time: new Date().toISOString(),
       status: 'pending'
@@ -186,7 +185,6 @@ async function scheduleReminders(task) {
 
       if (remindDate > new Date()) {
         reminders.push({
-          _openid: task._openid,
           task_id: task._id,
           remind_time: remindDate.toISOString(),
           status: 'pending'
@@ -194,12 +192,10 @@ async function scheduleReminders(task) {
       }
     }
   } else if (task.remind_mode === 'flexible' && task.remind_interval_minutes > 0) {
-    // 间隔提醒：首次在创建后 N 分钟
     const firstRemind = new Date()
     firstRemind.setMinutes(firstRemind.getMinutes() + task.remind_interval_minutes)
 
     reminders.push({
-      _openid: task._openid,
       task_id: task._id,
       remind_time: firstRemind.toISOString(),
       status: 'pending'

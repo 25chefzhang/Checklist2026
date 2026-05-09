@@ -379,14 +379,12 @@ Page({
         due_date: dueDate || dateUtil.formatDate(new Date()),
         remind_mode: remindMode,
         remind_at: remindMode === 'fixed' ? [remindTime] : [],
-        remind_interval_minutes: remindMode === 'flexible' ? remindInterval : 0,
-        _openid: openid
+        remind_interval_minutes: remindMode === 'flexible' ? remindInterval : 0
       })
 
       // 2. 计划提醒
       await reminderUtil.scheduleReminders({
-        ...task,
-        _openid: openid
+        ...task
       })
 
       wx.hideLoading()
