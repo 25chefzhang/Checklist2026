@@ -71,12 +71,15 @@ class ReminderManager {
       const task = await db.getTask(reminder.task_id)
 
       // 任务已完成，标记提醒已确认
-      if (!task || task.status === 'done') {
+      if (!task || task.status === 'completed') {
         await db.updateReminder(reminder._id, { status: 'confirmed' })
         return
       }
 
-      // Toast + 震动提醒（TTS 已降级）
+      // ---- 播放提醒音 ----
+      this._playReminderSound()
+
+      // Toast + 震动提醒
       if (!this.isSpeaking) {
         this.isSpeaking = true
         wx.showToast({ title: `⏰ ${task.content}`, icon: 'none', duration: 3000 })
@@ -109,7 +112,7 @@ class ReminderManager {
         success: async (res) => {
           if (res.confirm) {
             // 用户确认完成
-            await db.updateTaskStatus(task._id, 'done')
+            await db.updateTaskStatus(task._id, 'completed')
             await db.updateReminder(reminder._id, {
               status: 'confirmed',
               confirmed_at: new Date().toISOString()
@@ -124,6 +127,28 @@ class ReminderManager {
         fail: () => resolve()
       })
     })
+  }
+
+  /**
+   * 播放提醒音效
+   */
+  _playReminderSound() {
+    try {
+      const innerAudioContext = wx.createInnerAudioContext()
+      innerAudioContext.src = '/assets/reminder-beep.wav'
+      innerAudioContext.obeyMuteSwitch = false  // 静音模式下也播放
+      innerAudioContext.autoplay = true
+      innerAudioContext.onError((err) => {
+        console.warn('[提醒引擎] 提示音播放失败:', err)
+        innerAudioContext.destroy()
+      })
+      innerAudioContext.onEnded(() => {
+        innerAudioContext.destroy()
+      })
+      innerAudioContext.play()
+    } catch (e) {
+      console.warn('[提醒引擎] 初始化音频失败:', e)
+    }
   }
 
   /**
@@ -149,7 +174,7 @@ class ReminderManager {
    */
   async remindNow(taskId) {
     const task = await db.getTask(taskId)
-    if (!task || task.status === 'done') return
+    if (!task || task.status === 'completed') return
 
     // 创建一个即时提醒
     const reminder = {

@@ -74,8 +74,8 @@ Page({
     const task = this.data.task
     if (!task) return
 
-    const newStatus = task.status === 'done' ? 'pending' : 'done'
-    const actionLabel = newStatus === 'done' ? '标记完成' : '重新打开'
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed'
+    const actionLabel = newStatus === 'completed' ? '标记完成' : '重新打开'
 
     wx.showModal({
       title: '确认操作',
@@ -86,12 +86,12 @@ Page({
         try {
           await db.updateTaskStatus(task._id, newStatus)
           wx.showToast({
-            title: newStatus === 'done' ? '已完成 ✓' : '已重新打开',
+            title: newStatus === 'completed' ? '已完成 ✓' : '已重新打开',
             icon: 'success'
           })
 
           // 标记完成后返回上一页
-          if (newStatus === 'done') {
+          if (newStatus === 'completed') {
             setTimeout(() => wx.navigateBack(), 1200)
           } else {
             // 重新打开：刷新本地数据

@@ -41,7 +41,7 @@ Page({
       const stats = this.computeStats(allTasks)
       const summaryText = this.generateSummary(stats)
       const recentCompleted = allTasks
-        .filter(t => t.status === 'done')
+        .filter(t => t.status === 'completed')
         .slice(0, 20)
 
       // 来源分布柱最大值
@@ -95,7 +95,7 @@ Page({
 
     for (const task of tasks) {
       // 状态计数
-      if (task.status === 'done') {
+      if (task.status === 'completed') {
         stats.completed++
       } else {
         stats.pending++
@@ -123,7 +123,7 @@ Page({
         monthlyMap[monthKey] = { month: monthKey, completed: 0, total: 0 }
       }
       monthlyMap[monthKey].total++
-      if (task.status === 'done') {
+      if (task.status === 'completed') {
         monthlyMap[monthKey].completed++
       }
     }

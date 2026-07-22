@@ -17,13 +17,18 @@ Page({
 
   // ===== 生命周期 =====
 
-  onLoad() {
+  onLoad(options) {
     // 检测 PC 平台
     const systemInfo = wx.getSystemInfoSync()
     const platform = systemInfo.platform || ''
     this.setData({
       isPC: platform === 'windows' || platform === 'mac'
     })
+
+    // 检测是否从转发进入（群聊消息转发）
+    if (options.forward_text) {
+      this._handleForwardedMessage(decodeURIComponent(options.forward_text))
+    }
   },
 
   async onShow() {
@@ -33,6 +38,9 @@ Page({
     if (app.globalData.openid) {
       this.checkClipboard()
     }
+
+    // 检查是否从群聊分享卡片进入（带 shareTicket）
+    this._checkForwardScene()
   },
 
   // ===== 下拉刷新 =====
@@ -131,7 +139,7 @@ Page({
     this.setData({ completingId: id })
 
     try {
-      await db.updateTaskStatus(id, 'done')
+      await db.updateTaskStatus(id, 'completed')
 
       wx.showToast({ title: '已完成 ✓', icon: 'success' })
 
@@ -155,19 +163,51 @@ Page({
     }
   },
 
-  // ===== 剪贴板检查 =====
+  // ===== 剪贴板检查（增强版：支持群聊消息识别 + 去重） =====
   async checkClipboard() {
     try {
       const text = await clipboard.getClipboardText()
       if (!text) return
 
-      const result = clipboard.analyzeText(text)
-      if (!result.isLikely || result.confidence < 1) return
+      // ---- 去重：用简单哈希避免同一内容反复弹窗 ----
+      const textHash = this._simpleHash(text.trim())
+      const LAST_CLIPBOARD_HASH_KEY = 'last_clipboard_hash'
+      const lastHash = wx.getStorageSync(LAST_CLIPBOARD_HASH_KEY) || ''
 
-      // 匹配度高，弹窗询问用户
+      if (textHash === lastHash) {
+        console.log('[剪贴板] 内容未变化，跳过')
+        return
+      }
+
+      const result = clipboard.analyzeText(text)
+
+      // 置信度太低，跳过
+      if (!result.isLikely || result.confidence < 20) return
+
+      // 无论用户是否添加，都记录此哈希以避免重复弹窗
+      wx.setStorageSync(LAST_CLIPBOARD_HASH_KEY, textHash)
+
+      // 构建提示文案
+      let title = '📋 检测到任务文本'
+      let content = `「${text.length > 80 ? text.slice(0, 80) + '...' : text}」`
+
+      // 群聊消息 → 显示更多信息
+      if (result.isGroupChat && result.mentions.length > 0) {
+        title = '💬 检测到群聊任务'
+        content = `来源：群聊消息\n${result.mentions.length > 0 ? '提及：@' + result.mentions.join(', @') + '\\n' : ''}内容：「${text.length > 60 ? text.slice(0, 60) + '...' : text}」`
+      }
+
+      // 【任务】【待办】标记 → 高优先级
+      if (result.tags.length > 0) {
+        content = `标记：${result.tags.map(t => '【' + t + '】').join(' ')}\\n` + content
+      }
+
+      content += `\\n\\n置信度：${result.confidence}%`
+      content += `\\n是否将其添加为任务？`
+
       wx.showModal({
-        title: '📋 检测到任务文本',
-        content: `剪贴板内容：\n「${text.length > 60 ? text.slice(0, 60) + '...' : text}」\n\n是否将其添加为任务？`,
+        title,
+        content,
         confirmText: '添加',
         cancelText: '忽略',
         success: (res) => {
@@ -181,6 +221,71 @@ Page({
     } catch (e) {
       // 静默失败，用户可能未授权剪贴板
       console.log('剪贴板检查跳过:', e)
+    }
+  },
+
+  /** 简单哈希函数，用于剪贴板去重 */
+  _simpleHash(str) {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash |= 0 // 转为 32 位整数
+    }
+    return String(hash)
+  },
+
+  // ===== 转发消息处理 =====
+
+  /**
+   * 处理从群聊转发的消息
+   * 小程序分享卡片支持 `path` 传参：pages/index/index?forward_text=xxx
+   */
+  _handleForwardedMessage(text) {
+    if (!text || !text.trim()) return
+
+    const result = clipboard.analyzeText(text)
+
+    if (result.isLikely && result.confidence >= 20) {
+      // 直接弹窗问用户是否添加
+      const title = result.isGroupChat ? '💬 收到群聊任务' : '📨 收到转发任务'
+      const content = `内容：「${text.length > 80 ? text.slice(0, 80) + '...' : text}」`
+        + `\\n\\n置信度：${result.confidence}%`
+        + (result.mentions.length > 0 ? `\\n提及：@${result.mentions.join(', @')}` : '')
+        + `\\n\\n是否添加为任务？`
+
+      wx.showModal({
+        title,
+        content,
+        confirmText: '添加',
+        cancelText: '忽略',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: `/pages/add/add?mode=clipboard&text=${encodeURIComponent(text)}`
+            })
+          }
+        }
+      })
+    }
+  },
+
+  /**
+   * 检查是否从群聊分享卡片进入（微信聊天 → 转发小程序卡片）
+   * shareTicket 可用于获取群信息，但需要 wx.getShareInfo
+   */
+  _checkForwardScene() {
+    try {
+      const app = getApp()
+      const scene = app.globalData.scene || ''
+      // 场景值 1044 = 带 shareTicket 的小程序消息卡片（从群聊进入）
+      if (scene === 1044 && app.globalData.shareTicket) {
+        // 注：wx.getShareInfo 需要用户主动触发（如按钮点击），不能自动调用
+        // 此处仅记录日志，实际群信息获取需用户交互
+        console.log('[转发] 从群聊分享卡片进入, shareTicket:', app.globalData.shareTicket)
+      }
+    } catch (e) {
+      // 静默
     }
   },
 

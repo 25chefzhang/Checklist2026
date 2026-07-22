@@ -7,7 +7,12 @@ App({
     settings: null
   },
 
-  onLaunch() {
+  onLaunch(options) {
+    // 记录启动场景（用于判断是否从群聊卡片进入）
+    if (options) {
+      this.globalData.scene = options.scene
+      this.globalData.shareTicket = options.shareTicket || ''
+    }
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力')
       return

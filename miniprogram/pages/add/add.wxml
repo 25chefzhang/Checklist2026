@@ -90,15 +90,49 @@
 
 </view>
 
+<!-- ===== 多任务拆分确认弹窗（群聊消息场景） ===== -->
+<view class="confirm-overlay" wx:if="{{showMultiConfirm}}" bindtap="onMultiTaskDismiss">
+  <view class="multi-task-dialog" catchtap="noop">
+    <view class="dialog-title">💬 识别到 {{multiTasks.length}} 个潜在任务</view>
+    <view class="multi-task-hint">来自群聊消息，请确认要添加的项目</view>
+
+    <scroll-view class="multi-task-list" scroll-y>
+      <block wx:for="{{multiTasks}}" wx:key="index">
+        <view class="multi-task-item">
+          <view class="multi-task-content">{{item.summary || item.content.slice(0, 60)}}</view>
+          <view class="multi-task-meta">
+            <text class="confidence-tag {{item.confidence >= 60 ? 'high' : 'medium'}}">{{item.confidence}}%</text>
+            <text class="priority-tag {{item.priority}}">{{item.priority === 'urgent' ? '🔴紧急' : item.priority === 'high' ? '🟠高' : item.priority === 'medium' ? '🟡中' : '🟢低'}}</text>
+            <text wx:if="{{item.dueDate}}">📅 {{item.dueDate}}</text>
+          </view>
+          <button class="btn btn-small btn-primary" data-index="{{index}}" bindtap="onMultiTaskAdd">+ 添加</button>
+        </view>
+      </block>
+    </scroll-view>
+
+    <view class="dialog-footer">
+      <button class="btn btn-outline" bindtap="onMultiTaskDismiss">全部忽略</button>
+      <button class="btn btn-primary" bindtap="onMultiTaskAddAll">一键添加全部</button>
+    </view>
+  </view>
+</view>
+
 <!-- ===== 确认弹窗（卡片式 Modal） ===== -->
 <view class="confirm-overlay" wx:if="{{showConfirm}}" bindtap="hideConfirmDialog">
   <view class="confirm-dialog" catchtap="noop">
     <view class="dialog-title">确认任务信息</view>
 
-    <!-- 任务内容（不可编辑） -->
+    <!-- 任务内容（可编辑） -->
     <view class="dialog-field">
       <view class="field-label">任务内容</view>
-      <view class="field-content readonly">{{taskContent}}</view>
+      <textarea
+        class="field-textarea"
+        value="{{taskContent}}"
+        bindinput="onTaskContentChange"
+        maxlength="500"
+        auto-height
+        placeholder="任务内容"
+      />
     </view>
 
     <!-- 截止日期 -->

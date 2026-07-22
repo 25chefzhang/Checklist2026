@@ -11,7 +11,7 @@
     <view class="tag-row">
       <view class="tag source-tag source-{{task.source}}">{{sourceLabel}}</view>
       <view class="tag priority-tag priority-{{task.priority}}">{{priorityLabel}}</view>
-      <view wx:if="{{task.status === 'done'}}" class="tag status-done-tag">已完成</view>
+      <view wx:if="{{task.status === 'completed'}}" class="tag status-done-tag">已完成</view>
       <view wx:else class="tag status-pending-tag">待完成</view>
     </view>
   </view>
@@ -68,7 +68,7 @@
   <!-- 操作按钮 -->
   <view class="action-area">
     <button class="btn btn-toggle" bindtap="onToggleStatus">
-      {{task.status === 'done' ? '🔄 重新打开' : '✅ 标记完成'}}
+      {{task.status === 'completed' ? '🔄 重新打开' : '✅ 标记完成'}}
     </button>
     <button class="btn btn-delete" bindtap="onDelete">
       🗑 删除任务

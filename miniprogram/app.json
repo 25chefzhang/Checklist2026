@@ -14,9 +14,13 @@
   "permission": {
     "scope.record": {
       "desc": "用于语音录入工作任务"
+    },
+    "scope.writeClipboard": {
+      "desc": "用于读取复制的工作消息自动创建任务"
     }
   },
   "requiredBackgroundModes": ["audio"],
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "resizable": true
 }

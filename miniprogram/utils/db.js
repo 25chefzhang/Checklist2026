@@ -92,7 +92,7 @@ async function updateTaskStatus(taskId, status) {
   return await db.collection('tasks').doc(taskId).update({
     data: {
       status: status,
-      completed_at: status === 'done' ? now : null,
+      completed_at: status === 'completed' ? now : null,
       updated_at: now
     }
   })
@@ -127,7 +127,7 @@ async function getCompletedTasks(openid, months = 4) {
   const res = await db.collection('tasks')
     .where({
       _openid: openid,
-      status: 'done',
+      status: 'completed',
       completed_at: cmd().gte(startDate.toISOString())
     })
     .orderBy('completed_at', 'desc')

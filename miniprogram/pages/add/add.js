@@ -1,11 +1,13 @@
 // pages/add/add.js — 添加任务页
 // 已移除 WechatSI 插件依赖，改用 voice.js 工具（云函数识别降级方案）
+// v2: 支持群聊消息多任务拆分
 
 const db = require('../../utils/db.js')
 const dateUtil = require('../../utils/date.js')
 const clipboardUtil = require('../../utils/clipboard.js')
 const reminderUtil = require('../../utils/reminder.js')
 const voice = require('../../utils/voice.js')
+const chatUtil = require('../../utils/chat.js')
 
 const app = getApp()
 
@@ -25,6 +27,11 @@ Page({
 
     // ===== 手动模式 =====
     manualInput: '',
+
+    // ===== 多任务拆分模式（群聊消息转发场景） =====
+    multiTasks: [],         // [{content, summary, confidence, priority, dueDate}]
+    showMultiConfirm: false,
+    targetTaskIndex: 0,     // 当前正在确认的任务索引
 
     // ===== 确认弹窗 =====
     showConfirm: false,
@@ -59,7 +66,12 @@ Page({
     if (options.content && options.content.trim()) {
       const content = decodeURIComponent(options.content).trim()
       if (content) {
-        this.showConfirmDialog(content)
+        // 检测是否为多消息（群聊转发）
+        if (chatUtil.looksLikeMultipleMessages(content)) {
+          this._handleMultiMessage(content)
+        } else {
+          this.showConfirmDialog(content)
+        }
       }
     }
 
@@ -332,6 +344,10 @@ Page({
 
   // ---- 弹窗字段变更 ----
 
+  onTaskContentChange(e) {
+    this.setData({ taskContent: e.detail.value })
+  },
+
   onDueDateChange(e) {
     this.setData({ dueDate: e.detail.value })
   },
@@ -351,6 +367,121 @@ Page({
   onRemindIntervalChange(e) {
     const val = parseInt(e.detail.value) || 0
     this.setData({ remindInterval: Math.max(0, Math.min(val, 1440)) })
+  },
+
+  // ================================================================
+  //  多任务拆分（群聊消息转发场景）
+  // ================================================================
+
+  /**
+   * 处理多消息文本：调用云函数拆分为多个任务
+   */
+  async _handleMultiMessage(text) {
+    wx.showLoading({ title: '解析群聊消息...' })
+
+    try {
+      const result = await chatUtil.parseChatText(text)
+      wx.hideLoading()
+
+      if (result.tasks && result.tasks.length >= 1) {
+        this.setData({
+          multiTasks: result.tasks,
+          showMultiConfirm: true
+        })
+      } else {
+        wx.showToast({ title: result.summary || '未发现任务', icon: 'none' })
+      }
+    } catch (e) {
+      wx.hideLoading()
+      console.error('多消息解析失败:', e)
+      wx.showToast({ title: '解析失败，请手动输入', icon: 'none' })
+    }
+  },
+
+  /**
+   * 批量添加多任务中的一条
+   */
+  async onMultiTaskAdd(e) {
+    const index = parseInt(e.currentTarget.dataset.index)
+    const task = this.data.multiTasks[index]
+    if (!task) return
+
+    wx.showLoading({ title: '添加中...' })
+
+    try {
+      const openid = app.globalData.openid
+
+      const created = await db.createTask({
+        content: task.content.trim(),
+        source: 'clipboard',
+        source_detail: '群聊转发',
+        priority: task.priority || 'medium',
+        due_date: task.dueDate || dateUtil.formatDate(new Date()),
+        remind_mode: 'fixed',
+        remind_at: ['09:00'],
+        remind_interval_minutes: 0
+      })
+
+      await reminderUtil.scheduleReminders({ ...created })
+      wx.hideLoading()
+      wx.showToast({ title: '已添加', icon: 'success' })
+
+      // 从列表中移除
+      const updated = [...this.data.multiTasks]
+      updated.splice(index, 1)
+      this.setData({ multiTasks: updated })
+
+      // 全部添加完毕
+      if (updated.length === 0) {
+        setTimeout(() => wx.navigateBack(), 800)
+      }
+    } catch (e) {
+      wx.hideLoading()
+      console.error('批量添加失败:', e)
+      wx.showToast({ title: '添加失败', icon: 'none' })
+    }
+  },
+
+  /**
+   * 批量添加全部识别出的任务
+   */
+  async onMultiTaskAddAll() {
+    if (this.data.multiTasks.length === 0) return
+
+    wx.showLoading({ title: `添加 ${this.data.multiTasks.length} 个任务...` })
+    let added = 0
+
+    for (const task of this.data.multiTasks) {
+      try {
+        const openid = app.globalData.openid
+        const created = await db.createTask({
+          content: task.content.trim(),
+          source: 'clipboard',
+          source_detail: '群聊转发',
+          priority: task.priority || 'medium',
+          due_date: task.dueDate || dateUtil.formatDate(new Date()),
+          remind_mode: 'fixed',
+          remind_at: ['09:00'],
+          remind_interval_minutes: 0
+        })
+        await reminderUtil.scheduleReminders({ ...created })
+        added++
+      } catch (e) {
+        console.error('批量添加任务失败:', task.summary, e)
+      }
+    }
+
+    wx.hideLoading()
+    wx.showToast({ title: `已添加 ${added} 个任务`, icon: 'success' })
+
+    if (added > 0) {
+      setTimeout(() => wx.navigateBack(), 800)
+    }
+  },
+
+  onMultiTaskDismiss() {
+    this.setData({ showMultiConfirm: false, multiTasks: [] })
+    wx.navigateBack()
   },
 
   // ================================================================
