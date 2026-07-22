@@ -101,3 +101,37 @@
   <float-button visible="{{true}}" />
 
 </view>
+
+<!-- ===== 闹钟提醒覆盖层 ===== -->
+<view class="alarm-overlay" wx:if="{{showAlarm}}" catchtap="noop">
+  <view class="alarm-card">
+    <!-- 闹钟图标（脉动动画） -->
+    <view class="alarm-icon">⏰</view>
+
+    <!-- 标题 -->
+    <view class="alarm-title">任务提醒</view>
+
+    <!-- 任务内容 -->
+    <view class="alarm-content">{{alarmTask.content}}</view>
+
+    <!-- 截止日期 -->
+    <view class="alarm-meta" wx:if="{{alarmTask.dueLabel}}">
+      📅 截止：{{alarmTask.dueLabel}}（{{alarmTask.due_date}}）
+    </view>
+
+    <!-- 优先级 -->
+    <view class="alarm-priority priority-{{alarmTask.priority}}" wx:if="{{alarmTask.priority}}">
+      {{alarmTask.priority === 'urgent' ? '🔴 紧急' : (alarmTask.priority === 'high' ? '🟠 高优先级' : (alarmTask.priority === 'medium' ? '🟡 中优先级' : '🟢 低优先级'))}}
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="alarm-actions">
+      <button class="alarm-btn alarm-btn-snooze" bindtap="onAlarmSnooze">
+        💤 稍后提醒
+      </button>
+      <button class="alarm-btn alarm-btn-complete" bindtap="onAlarmComplete">
+        ✅ 已完成
+      </button>
+    </view>
+  </view>
+</view>

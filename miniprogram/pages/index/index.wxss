@@ -287,3 +287,153 @@
   margin-top: 4rpx;
   font-weight: 500;
 }
+
+/* ================================================================
+   闹钟提醒覆盖层
+   ================================================================ */
+
+.alarm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: alarm-overlay-in 0.3s ease-out;
+}
+
+@keyframes alarm-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.alarm-card {
+  width: 600rpx;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 32rpx;
+  padding: 56rpx 40rpx 40rpx;
+  box-shadow: 0 20rpx 80rpx rgba(15, 52, 96, 0.5);
+  text-align: center;
+  animation: alarm-card-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes alarm-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(80rpx) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 闹钟图标 — 脉动 */
+.alarm-icon {
+  font-size: 96rpx;
+  margin-bottom: 16rpx;
+  animation: alarm-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes alarm-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.25); opacity: 0.7; }
+}
+
+/* 标题 */
+.alarm-title {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 28rpx;
+  letter-spacing: 4rpx;
+}
+
+/* 任务内容 */
+.alarm-content {
+  font-size: 34rpx;
+  color: #e0e7ff;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+  padding: 20rpx 28rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  word-break: break-all;
+}
+
+/* 截止日期 */
+.alarm-meta {
+  font-size: 26rpx;
+  color: #94a3b8;
+  margin-bottom: 12rpx;
+}
+
+/* 优先级 */
+.alarm-priority {
+  display: inline-block;
+  font-size: 24rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.alarm-priority.priority-urgent {
+  background: rgba(231, 76, 60, 0.2);
+  color: #fc8181;
+}
+.alarm-priority.priority-high {
+  background: rgba(243, 156, 18, 0.2);
+  color: #f6ad55;
+}
+.alarm-priority.priority-medium {
+  background: rgba(243, 156, 18, 0.15);
+  color: #f6e05e;
+}
+.alarm-priority.priority-low {
+  background: rgba(39, 174, 96, 0.2);
+  color: #68d391;
+}
+
+/* 按钮区 */
+.alarm-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.alarm-btn {
+  flex: 1;
+  padding: 26rpx 0;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+  transition: all 0.15s;
+}
+
+.alarm-btn:active {
+  transform: scale(0.96);
+}
+
+.alarm-btn-snooze {
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border: 2rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.alarm-btn-snooze:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.alarm-btn-complete {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: #fff;
+  box-shadow: 0 6rpx 24rpx rgba(39, 174, 96, 0.4);
+}
+
+.alarm-btn-complete:active {
+  box-shadow: 0 2rpx 8rpx rgba(39, 174, 96, 0.3);
+}

@@ -8,6 +8,9 @@ class ReminderManager {
     this.isRunning = false
     this.isSpeaking = false // 避免语音播报重叠
     this.lastCheckTime = 0
+    this.alarmCallback = null  // 页面注册的闹钟回调
+    this._alarmAudio = null    // 循环闹钟音频实例
+    this._vibrateTimer = null  // 循环振动定时器
   }
 
   /**
@@ -76,20 +79,27 @@ class ReminderManager {
         return
       }
 
-      // ---- 播放提醒音 ----
+      // ---- 闹钟模式（页面注册了回调） ----
+      if (this.alarmCallback) {
+        this._startAlarmSound()
+        this._startAlarmVibrate()
+        await this.alarmCallback(task, reminder)
+        this._stopAlarmSound()
+        this._stopAlarmVibrate()
+        return
+      }
+
+      // ---- 降级模式：Toast + 弹窗（无页面回调时） ----
       this._playReminderSound()
 
-      // Toast + 震动提醒
       if (!this.isSpeaking) {
         this.isSpeaking = true
         wx.showToast({ title: `⏰ ${task.content}`, icon: 'none', duration: 3000 })
         wx.vibrateLong({ fail: () => {} })
-        // 等待 toast 显示完毕后再弹窗
         await new Promise(r => setTimeout(r, 1500))
         this.isSpeaking = false
       }
 
-      // 弹窗确认
       await this.showReminderDialog(task, reminder)
 
     } catch (e) {
@@ -130,13 +140,13 @@ class ReminderManager {
   }
 
   /**
-   * 播放提醒音效
+   * 播放提醒音效（降级模式，单次短促）
    */
   _playReminderSound() {
     try {
       const innerAudioContext = wx.createInnerAudioContext()
       innerAudioContext.src = '/assets/reminder-beep.wav'
-      innerAudioContext.obeyMuteSwitch = false  // 静音模式下也播放
+      innerAudioContext.obeyMuteSwitch = false
       innerAudioContext.autoplay = true
       innerAudioContext.onError((err) => {
         console.warn('[提醒引擎] 提示音播放失败:', err)
@@ -148,6 +158,67 @@ class ReminderManager {
       innerAudioContext.play()
     } catch (e) {
       console.warn('[提醒引擎] 初始化音频失败:', e)
+    }
+  }
+
+  /**
+   * 播放循环闹钟音效（闹钟模式，循环播放直到手动停止）
+   */
+  _startAlarmSound() {
+    try {
+      this._alarmAudio = wx.createInnerAudioContext()
+      this._alarmAudio.src = '/assets/alarm-loop.wav'
+      this._alarmAudio.obeyMuteSwitch = false
+      this._alarmAudio.loop = true
+      this._alarmAudio.onError((err) => {
+        console.warn('[提醒引擎] 闹钟音频播放失败:', err)
+        // 降级：用单次 beep 重试
+        this._stopAlarmSound()
+        this._playReminderSound()
+      })
+      this._alarmAudio.play()
+    } catch (e) {
+      console.warn('[提醒引擎] 闹钟音频初始化失败:', e)
+    }
+  }
+
+  /**
+   * 停止闹钟音效
+   */
+  _stopAlarmSound() {
+    if (this._alarmAudio) {
+      try {
+        this._alarmAudio.stop()
+        this._alarmAudio.destroy()
+      } catch (e) {
+        // 静默
+      }
+      this._alarmAudio = null
+    }
+  }
+
+  /**
+   * 开始循环振动（闹钟模式）
+   */
+  _startAlarmVibrate() {
+    // 每 2 秒振动一次，模拟闹钟震感
+    this._stopAlarmVibrate()
+    const doVibrate = () => {
+      wx.vibrateLong({ fail: () => {} })
+    }
+    doVibrate()
+    this._vibrateTimer = setInterval(() => {
+      doVibrate()
+    }, 2000)
+  }
+
+  /**
+   * 停止循环振动
+   */
+  _stopAlarmVibrate() {
+    if (this._vibrateTimer) {
+      clearInterval(this._vibrateTimer)
+      this._vibrateTimer = null
     }
   }
 

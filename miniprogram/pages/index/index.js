@@ -12,7 +12,12 @@ Page({
     isRefreshing: false,
     dateRangeLabel: '',
     completingId: null,   // 正在确认完成的任务 _id
-    isPC: false
+    isPC: false,
+
+    // ===== 闹钟提醒 =====
+    showAlarm: false,
+    alarmTask: null,        // 当前闹钟对应的任务对象
+    alarmReminder: null     // 当前闹钟对应的 reminder 对象
   },
 
   // ===== 生命周期 =====
@@ -24,6 +29,11 @@ Page({
     this.setData({
       isPC: platform === 'windows' || platform === 'mac'
     })
+
+    // 注册闹钟回调到 ReminderManager
+    if (app.globalData.reminderManager) {
+      app.globalData.reminderManager.alarmCallback = this._onAlarm.bind(this)
+    }
 
     // 检测是否从转发进入（群聊消息转发）
     if (options.forward_text) {
@@ -309,5 +319,76 @@ Page({
   // ===== PC 端置顶窗口 =====
   onPinWindow() {
     wx.showToast({ title: '请在PC客户端手动置顶', icon: 'none', duration: 2000 })
+  },
+
+  // ================================================================
+  //  闹钟提醒
+  // ================================================================
+
+  /**
+   * 闹钟回调 —— 由 ReminderManager 调用
+   * 返回 Promise，在用户操作后 resolve
+   */
+  _onAlarm(task, reminder) {
+    return new Promise((resolve) => {
+      this._alarmResolve = resolve
+      const dateLabel = dateUtil.relativeDate(task.due_date)
+      this.setData({
+        showAlarm: true,
+        alarmTask: { ...task, dueLabel: dateLabel },
+        alarmReminder: reminder
+      })
+    })
+  },
+
+  /**
+   * 闹钟 — 标记完成
+   */
+  async onAlarmComplete() {
+    const { alarmTask, alarmReminder } = this.data
+    const resolve = this._alarmResolve
+
+    try {
+      await db.updateTaskStatus(alarmTask._id, 'completed')
+      await db.updateReminder(alarmReminder._id, {
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      })
+      wx.showToast({ title: '已完成 ✓', icon: 'success' })
+    } catch (e) {
+      console.error('[闹钟] 标记完成失败:', e)
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    }
+
+    // 关闭闹钟 + 刷新列表
+    this.setData({ showAlarm: false, alarmTask: null, alarmReminder: null })
+    this.loadTasks()
+    if (resolve) resolve()
+  },
+
+  /**
+   * 闹钟 — 稍后提醒
+   */
+  async onAlarmSnooze() {
+    const { alarmTask, alarmReminder } = this.data
+    const resolve = this._alarmResolve
+    const reminderManager = app.globalData.reminderManager
+
+    try {
+      if (alarmTask.remind_mode === 'flexible' && alarmTask.remind_interval_minutes > 0) {
+        const nextRemind = new Date()
+        nextRemind.setMinutes(nextRemind.getMinutes() + alarmTask.remind_interval_minutes)
+        await db.updateReminder(alarmReminder._id, {
+          remind_time: nextRemind.toISOString()
+        })
+      } else {
+        await db.updateReminder(alarmReminder._id, { status: 'sent' })
+      }
+    } catch (e) {
+      console.error('[闹钟] 稍后提醒失败:', e)
+    }
+
+    this.setData({ showAlarm: false, alarmTask: null, alarmReminder: null })
+    if (resolve) resolve()
   }
 })
