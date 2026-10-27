@@ -130,6 +130,15 @@
   word-break: break-all;
 }
 
+.result-meta {
+  margin-top: 16rpx;
+  padding: 16rpx 24rpx;
+  background: #e8f0fe;
+  border-radius: var(--radius-sm);
+  font-size: 26rpx;
+  color: var(--color-primary);
+}
+
 .result-actions {
   display: flex;
   gap: 20rpx;
@@ -335,10 +344,17 @@
   transition: all 0.2s;
 }
 
+.priority-btn.urgent.active {
+  background: #fadbd8;
+  border-color: #c0392b;
+  color: #922b21;
+  font-weight: 700;
+}
+
 .priority-btn.high.active {
-  background: #fde8e8;
-  border-color: #e74c3c;
-  color: #c0392b;
+  background: #fdebd0;
+  border-color: #e67e22;
+  color: #b9770e;
   font-weight: 600;
 }
 

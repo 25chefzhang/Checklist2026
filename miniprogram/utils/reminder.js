@@ -288,8 +288,18 @@ async function scheduleReminders(task) {
       }
     }
   } else if (task.remind_mode === 'flexible' && task.remind_interval_minutes > 0) {
-    const firstRemind = new Date()
-    firstRemind.setMinutes(firstRemind.getMinutes() + task.remind_interval_minutes)
+    // 间隔提醒：若解析出了具体截止时间（due_datetime）且在将来，先在该时间点提醒，之后按间隔循环
+    let firstRemind = null
+    if (task.due_datetime) {
+      const dt = new Date(String(task.due_datetime).replace(' ', 'T'))
+      if (!isNaN(dt.getTime()) && dt > new Date()) {
+        firstRemind = dt
+      }
+    }
+    if (!firstRemind) {
+      firstRemind = new Date()
+      firstRemind.setMinutes(firstRemind.getMinutes() + task.remind_interval_minutes)
+    }
 
     reminders.push({
       task_id: task._id,

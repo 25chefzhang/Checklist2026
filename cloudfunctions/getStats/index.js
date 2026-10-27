@@ -17,7 +17,9 @@ exports.main = async (event, context) => {
 
   // 计算起始日期：months 个月前的月初
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+  // 注意：tasks.created_at 全项目均存 ISO 字符串，查询必须用字符串，
+  // 不能用 Date 对象（否则字符串字段 >= Date 恒为 false，统计永远为 0）
+  const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1).toISOString();
 
   try {
     // 查询该用户指定时间范围内的所有任务

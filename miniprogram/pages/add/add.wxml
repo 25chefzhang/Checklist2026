@@ -42,6 +42,7 @@
     <view class="voice-result" wx:if="{{recognizedText}}">
       <view class="result-label">识别结果：</view>
       <view class="result-text">{{recognizedText}}</view>
+      <view class="result-meta" wx:if="{{recognizedMeta}}">🎯 {{recognizedMeta}}</view>
       <view class="result-actions">
         <button class="btn btn-outline" bindtap="onVoiceRetry">🔄 重新录音</button>
         <button class="btn btn-primary" bindtap="onVoiceConfirm">✅ 确认为工作任务</button>
@@ -143,15 +144,28 @@
       </picker>
     </view>
 
+    <!-- 截止时间 -->
+    <view class="dialog-field">
+      <view class="field-label">截止时间</view>
+      <picker mode="time" value="{{dueTime || '09:00'}}" bindchange="onDueTimeChange">
+        <view class="field-picker">{{dueTime || '未设定（默认 09:00）'}}</view>
+      </picker>
+    </view>
+
     <!-- 优先级选择 -->
     <view class="dialog-field">
       <view class="field-label">优先级</view>
       <view class="priority-row">
         <view
+          class="priority-btn urgent {{priority === 'urgent' ? 'active' : ''}}"
+          data-priority="urgent"
+          bindtap="onPriorityTap"
+        >🔴 紧急</view>
+        <view
           class="priority-btn high {{priority === 'high' ? 'active' : ''}}"
           data-priority="high"
           bindtap="onPriorityTap"
-        >🔴 高</view>
+        >🟠 高</view>
         <view
           class="priority-btn medium {{priority === 'medium' ? 'active' : ''}}"
           data-priority="medium"

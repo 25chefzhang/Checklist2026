@@ -8,6 +8,8 @@ const clipboardUtil = require('../../utils/clipboard.js')
 const reminderUtil = require('../../utils/reminder.js')
 const voice = require('../../utils/voice.js')
 const chatUtil = require('../../utils/chat.js')
+const parse = require('../../utils/parse.js')
+const config = require('../../config.js')
 
 const app = getApp()
 
@@ -20,6 +22,7 @@ Page({
     isRecording: false,
     recordSeconds: 0,
     recognizedText: '',
+    recognizedMeta: '',    // 识别解析摘要（时间/紧急度/频率）
 
     // ===== 剪贴板模式 =====
     clipboardText: '',
@@ -37,16 +40,17 @@ Page({
     showConfirm: false,
     taskContent: '',
     dueDate: '',
+    dueTime: '',          // 解析出的具体时刻（HH:mm），可编辑
+    dueDatetime: null,    // 完整截止时间（YYYY-MM-DD HH:mm）
     priority: 'medium',
-    remindMode: 'fixed',    // 'fixed' | 'flexible'
+    remindMode: 'flexible',    // 'fixed' | 'flexible'
     remindTime: '09:00',
     remindInterval: 60
   },
 
   // ---- 录音相关 ----
   _recordTimer: null,
-  _recorderManager: null,
-  _tempFilePath: null,  // 录音临时文件路径
+  _recognizer: null,
 
   // ================================================================
   //  生命周期
@@ -58,20 +62,17 @@ Page({
       this.setData({ mode: options.mode })
     }
 
-    // 2. 初始化录音管理器（原生 API）
-    this._recorderManager = wx.getRecorderManager()
-    this._bindRecorderEvents()
+    // 2. 初始化语音识别器（插件优先，云函数降级）
+    this._initRecognizer()
 
-    // 3. 如果从 index 页检测剪贴板跳转过来（带 content 参数），自动弹出确认弹窗
-    if (options.content && options.content.trim()) {
-      const content = decodeURIComponent(options.content).trim()
-      if (content) {
-        // 检测是否为多消息（群聊转发）
-        if (chatUtil.looksLikeMultipleMessages(content)) {
-          this._handleMultiMessage(content)
-        } else {
-          this.showConfirmDialog(content)
-        }
+    // 3. 如果从 index 页跳转过来（带 content / text 参数），自动弹出确认弹窗
+    const incoming = decodeURIComponent(options.content || options.text || '').trim()
+    if (incoming) {
+      // 检测是否为多消息（群聊转发）
+      if (chatUtil.looksLikeMultipleMessages(incoming)) {
+        this._handleMultiMessage(incoming)
+      } else {
+        this.showConfirmDialog(incoming)
       }
     }
 
@@ -82,12 +83,9 @@ Page({
   },
 
   onUnload() {
-    // 释放录音管理器监听
-    if (this._recorderManager) {
-      this._recorderManager.onStart(null)
-      this._recorderManager.onStop(null)
-      this._recorderManager.onError(null)
-      this._recorderManager.onFrameRecorded(null)
+    // 停止录音 + 释放识别器
+    if (this._recognizer && this._recognizer.stop) {
+      try { this._recognizer.stop() } catch (e) { /* ignore */ }
     }
 
     // 清理定时器
@@ -124,57 +122,52 @@ Page({
   //  语音模式
   // ================================================================
 
-  /** 绑定 RecorderManager 事件 */
-  _bindRecorderEvents() {
-    this._recorderManager.onStart(() => {
-      console.log('[add] 录音开始')
-      this.setData({ isRecording: true, recordSeconds: 0, recognizedText: '' })
-    })
-
-    this._recorderManager.onStop((res) => {
-      console.log('[add] 录音结束:', res)
-      this.setData({ isRecording: false })
-      this._clearRecordTimer()
-
-      if (res.tempFilePath) {
-        this._tempFilePath = res.tempFilePath
-        // 调用云函数识别
-        this._doRecognize(res.tempFilePath)
-      } else {
-        wx.showToast({ title: '录音文件为空', icon: 'none' })
-      }
-    })
-
-    this._recorderManager.onError((err) => {
-      console.error('[add] 录音错误:', err)
-      this.setData({ isRecording: false })
-      this._clearRecordTimer()
-      wx.showToast({ title: '录音失败，请重试', icon: 'none' })
-    })
-
-    this._recorderManager.onFrameRecorded((res) => {
-      // 可用于音量可视化，此处仅做存在性占位
+  /** 初始化语音识别器（插件优先，云函数降级） */
+  _initRecognizer() {
+    this._recognizer = voice.createRecognizer({
+      onStart: () => {
+        console.log('[add] 录音开始（后端: ' + (this._recognizer && this._recognizer.mode) + '）')
+        this.setData({ isRecording: true, recordSeconds: 0, recognizedText: '', recognizedMeta: '' })
+      },
+      onResult: (text) => this._onRecognized(text),
+      onError: (msg) => this._onRecognizeError(msg)
     })
   },
 
-  /** 调用云函数做语音识别 */
-  async _doRecognize(filePath) {
-    wx.showLoading({ title: '识别中...' })
-    try {
-      const text = await voice.recognizeVoice(filePath)
-      wx.hideLoading()
+  /** 识别成功回调 */
+  _onRecognized(text) {
+    this.setData({ isRecording: false })
+    this._clearRecordTimer()
 
-      if (text) {
-        this.setData({ recognizedText: text })
-        console.log('[add] 识别成功:', text)
-      } else {
-        wx.showToast({ title: '语音识别失败，请手动输入', icon: 'none' })
-      }
-    } catch (e) {
-      wx.hideLoading()
-      console.error('[add] 识别异常:', e)
+    if (text) {
+      const parsed = parse.parseTask(text)
+      console.log('[add] 识别成功:', text, '→ 解析:', parsed)
+      this.setData({
+        recognizedText: text,
+        recognizedMeta: this._buildMeta(parsed)
+      })
+    } else {
+      this.setData({ recognizedText: '', recognizedMeta: '' })
       wx.showToast({ title: '语音识别失败，请手动输入', icon: 'none' })
     }
+  },
+
+  /** 识别失败回调 */
+  _onRecognizeError(msg) {
+    this.setData({ isRecording: false, recognizedText: '', recognizedMeta: '' })
+    this._clearRecordTimer()
+    console.error('[add] 识别异常:', msg)
+    wx.showToast({ title: msg || '语音识别失败，请手动输入', icon: 'none' })
+  },
+
+  /** 生成解析摘要文案 */
+  _buildMeta(parsed) {
+    const prioLabel = { urgent: '🔴紧急', high: '🟠高', medium: '🟡中', low: '🟢低' }[parsed.priority] || parsed.priority
+    const timePart = parsed.dueTime ? `${parsed.dueDate} ${parsed.dueTime}` : parsed.dueDate
+    const freqPart = parsed.remindIntervalMinutes > 0
+      ? `每${parse.formatIntervalMinutes(parsed.remindIntervalMinutes)}提醒`
+      : '截止前每日提醒'
+    return `${timePart} · ${prioLabel} · ${freqPart}`
   },
 
   /** 按住开始录音 */
@@ -199,18 +192,12 @@ Page({
   },
 
   _startRecording() {
-    this._tempFilePath = null
+    if (!this._recognizer) this._initRecognizer()
 
-    // 使用原生 RecorderManager 开始录音
-    this._recorderManager.start({
-      duration: 60000,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 48000,
-      format: 'mp3'
-    })
+    this._recognizer.start()
 
     // 计时器（UI 展示用）
+    this._clearRecordTimer()
     this._recordTimer = setInterval(() => {
       const seconds = this.data.recordSeconds + 1
       this.setData({ recordSeconds: seconds })
@@ -225,8 +212,9 @@ Page({
   onVoiceTouchEnd() {
     if (!this.data.isRecording) return
 
-    // 停止原生录音
-    this._recorderManager.stop()
+    if (this._recognizer && this._recognizer.stop) {
+      this._recognizer.stop()
+    }
   },
 
   /** 清除计时器 */
@@ -241,6 +229,7 @@ Page({
   onVoiceRetry() {
     this.setData({
       recognizedText: '',
+      recognizedMeta: '',
       recordSeconds: 0
     })
   },
@@ -315,21 +304,30 @@ Page({
 
   /**
    * 显示确认弹窗
-   * @param {string} content 任务内容文本
+   * @param {string} content 任务内容文本（语音识别/剪贴板/手动输入）
    */
   showConfirmDialog(content) {
-    // 用 inferDueDate 推断截止日期
-    const inferredDate = reminderUtil.inferDueDate(content)
-    // 分析是否为工作任务
-    const analysis = clipboardUtil.analyzeText(content)
+    // 解析出时间 / 任务内容 / 紧急度 / 提醒频率
+    const parsed = parse.parseTask(content)
+
+    // 频率映射：低优先级 → 固定模式单次提醒；其余 → 间隔模式按频率提醒
+    let remindMode = 'flexible'
+    let remindInterval = parsed.remindIntervalMinutes
+    if (remindInterval <= 0) {
+      remindMode = 'fixed'
+      remindInterval = 0
+    }
+    const remindTime = parsed.dueTime || '09:00'
 
     this.setData({
-      taskContent: content,
-      dueDate: inferredDate,
-      priority: 'medium',
-      remindMode: 'fixed',
-      remindTime: '09:00',
-      remindInterval: 60,
+      taskContent: parsed.content,
+      dueDate: parsed.dueDate,
+      dueTime: parsed.dueTime || '',
+      dueDatetime: parsed.dueDatetime,
+      priority: parsed.priority,
+      remindMode,
+      remindTime,
+      remindInterval,
       showConfirm: true
     })
   },
@@ -342,6 +340,36 @@ Page({
     // 阻止弹窗点击穿透
   },
 
+  /** 根据优先级计算提醒字段（紧急 2h / 高 半天 / 中 每天 / 低 截止前每日固定） */
+  _remindFieldsForPriority(priority) {
+    const freq = parse.PRIORITY_FREQUENCY[priority] !== undefined ? parse.PRIORITY_FREQUENCY[priority] : 0
+    if (freq > 0) {
+      return { remind_mode: 'flexible', remind_at: [], remind_interval_minutes: freq }
+    }
+    return { remind_mode: 'fixed', remind_at: ['09:00'], remind_interval_minutes: 0 }
+  },
+
+  /**
+   * 请求订阅消息授权（一次性：授权一次只能发一条后台推送）
+   * 授权失败或用户拒绝不影响任务添加。
+   */
+  _requestSubscribe() {
+    return new Promise((resolve) => {
+      wx.requestSubscribeMessage({
+        tmplIds: [config.SUBSCRIBE_TEMPLATE_ID],
+        success: (res) => {
+          // res[templateId] 取值：'accept' 同意 / 'reject' 拒绝 / 'ban' 已禁止
+          console.log('[订阅] 授权结果:', res)
+          resolve()
+        },
+        fail: (err) => {
+          console.warn('[订阅] 授权失败:', err)
+          resolve()
+        }
+      })
+    })
+  },
+
   // ---- 弹窗字段变更 ----
 
   onTaskContentChange(e) {
@@ -349,11 +377,30 @@ Page({
   },
 
   onDueDateChange(e) {
-    this.setData({ dueDate: e.detail.value })
+    const dueDate = e.detail.value
+    this.setData({
+      dueDate,
+      dueDatetime: this.data.dueTime ? `${dueDate} ${this.data.dueTime}` : null
+    })
+  },
+
+  onDueTimeChange(e) {
+    const dueTime = e.detail.value
+    this.setData({
+      dueTime,
+      dueDatetime: `${this.data.dueDate} ${dueTime}`
+    })
   },
 
   onPriorityTap(e) {
-    this.setData({ priority: e.currentTarget.dataset.priority })
+    const priority = e.currentTarget.dataset.priority
+    // 联动提醒频率：紧急 2h / 高 半天 / 中 每天 / 低 单次
+    const freq = parse.PRIORITY_FREQUENCY[priority] !== undefined ? parse.PRIORITY_FREQUENCY[priority] : 0
+    this.setData({
+      priority,
+      remindMode: freq > 0 ? 'flexible' : 'fixed',
+      remindInterval: freq
+    })
   },
 
   onRemindModeTap(e) {
@@ -411,15 +458,14 @@ Page({
     try {
       const openid = app.globalData.openid
 
+      const remind = this._remindFieldsForPriority(task.priority || 'medium')
       const created = await db.createTask({
         content: task.content.trim(),
         source: 'clipboard',
         source_detail: '群聊转发',
         priority: task.priority || 'medium',
         due_date: task.dueDate || dateUtil.formatDate(new Date()),
-        remind_mode: 'fixed',
-        remind_at: ['09:00'],
-        remind_interval_minutes: 0
+        ...remind
       })
 
       await reminderUtil.scheduleReminders({ ...created })
@@ -454,15 +500,14 @@ Page({
     for (const task of this.data.multiTasks) {
       try {
         const openid = app.globalData.openid
+        const remind = this._remindFieldsForPriority(task.priority || 'medium')
         const created = await db.createTask({
           content: task.content.trim(),
           source: 'clipboard',
           source_detail: '群聊转发',
           priority: task.priority || 'medium',
           due_date: task.dueDate || dateUtil.formatDate(new Date()),
-          remind_mode: 'fixed',
-          remind_at: ['09:00'],
-          remind_interval_minutes: 0
+          ...remind
         })
         await reminderUtil.scheduleReminders({ ...created })
         added++
@@ -496,6 +541,12 @@ Page({
       return
     }
 
+    // 若设置了提醒且已配置订阅模板 ID，先请求订阅授权（不阻断添加流程）
+    const hasReminder = remindMode === 'fixed' || (remindMode === 'flexible' && remindInterval > 0)
+    if (hasReminder && config.SUBSCRIBE_TEMPLATE_ID) {
+      await this._requestSubscribe()
+    }
+
     wx.showLoading({ title: '添加中...' })
 
     try {
@@ -508,6 +559,8 @@ Page({
         source_detail: '',
         priority: priority,
         due_date: dueDate || dateUtil.formatDate(new Date()),
+        due_time: this.data.dueTime || '',
+        due_datetime: this.data.dueDatetime || null,
         remind_mode: remindMode,
         remind_at: remindMode === 'fixed' ? [remindTime] : [],
         remind_interval_minutes: remindMode === 'flexible' ? remindInterval : 0
